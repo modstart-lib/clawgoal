@@ -4,7 +4,7 @@ import {
   runMigrations,
 } from '../../../../../backend/src/storage/migrate.js'
 import {
-  DB_PATH,
+  getDbPath,
   getSharedDb,
 } from '../../../../../backend/src/storage/sqlite.js'
 import { createLogger } from '../../../kernel/logger.js'
@@ -181,7 +181,7 @@ class SqliteClawStoreImpl implements IClawStore {
     this.agentAudit = new SqliteAgentAuditStore(this.db)
     this.agentTool = new SqliteAgentToolStore(this.db)
 
-    logger.info(`Claw DB opened at ${DB_PATH}`)
+    logger.info(`Claw DB opened at ${getDbPath()}`)
   }
 
   close(): void {

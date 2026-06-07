@@ -545,6 +545,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && success()
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
       - name: Download All Artifacts
         uses: actions/download-artifact@v6
         with:

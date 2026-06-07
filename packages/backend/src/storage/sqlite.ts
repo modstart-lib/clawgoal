@@ -1,13 +1,13 @@
 /**
  * 全局共享 SQLite 数据库实例
- * 环境变量 DB_PATH 可覆盖默认路径 data/db/database.db。
+ * 数据库路径由 getDbPath() 从 config.dataPath 派生。
  */
 
 import type { Statement } from 'bun:sqlite'
 import { Database } from 'bun:sqlite'
 import fs from 'node:fs'
 import path from 'node:path'
-import { resolvePath } from '../config/env.js'
+import { config } from '../config/index.js'
 import { createSetting } from './sqlite/schema/setting.js'
 
 /**
@@ -53,7 +53,9 @@ export function makeSqlHelper(
 }
 
 /** 数据库文件路径（两个存储共用） */
-export const DB_PATH = process.env.DB_PATH ?? resolvePath('data/db/database.db')
+export function getDbPath(): string {
+  return path.join(config.dataPath, 'db', 'database.db')
+}
 
 let _db: Database.Database | null = null
 
@@ -63,9 +65,10 @@ let _db: Database.Database | null = null
  */
 export function getSharedDb(): Database.Database {
   if (!_db) {
-    const dir = path.dirname(DB_PATH)
+    const dbPath = getDbPath()
+    const dir = path.dirname(dbPath)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    _db = new Database(DB_PATH)
+    _db = new Database(dbPath)
     _db.run('PRAGMA journal_mode = WAL')
     _db.run('PRAGMA foreign_keys = ON')
     _db.run('PRAGMA cache_size = -2000') // 最多 2 MB 页缓存

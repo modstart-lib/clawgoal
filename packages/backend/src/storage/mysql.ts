@@ -1,7 +1,7 @@
 /**
  * 全局共享 MySQL 连接池
  * 所有 MySQL 存储模块共用同一个连接池实例。
- * 环境变量 DATABASE_URL 格式：mysql://user:pass@host:port/dbname
+ * 通过环境变量 DATABASE_URL 配置连接，格式：mysql://user:pass@host:port/dbname
  */
 
 import mysql, { Pool } from 'mysql2/promise'

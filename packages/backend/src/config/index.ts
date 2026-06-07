@@ -703,11 +703,6 @@ function _buildConfig() {
   }
   process.env.DATABASE_PROVIDER = dbProvider
 
-  // SQLite: always derive URL from dataPath
-  if (dbProvider === 'sqlite') {
-    process.env.DATABASE_URL = 'file:' + resolveDataSubPath('db/database.db')
-  }
-
   // Parse model providers first (needed for Model config resolution)
   const modelProviders = parseModelProviders(raw.modelProviders)
 

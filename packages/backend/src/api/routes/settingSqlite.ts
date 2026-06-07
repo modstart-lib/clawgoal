@@ -7,7 +7,7 @@ import { Router } from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
 import { resolvePath } from '../../config/env.js'
-import { DB_PATH, getSharedDb } from '../../storage/sqlite.js'
+import { getDbPath, getSharedDb } from '../../storage/sqlite.js'
 import {
   CHUNKS_DB_PATH,
   getChunksDb,
@@ -33,7 +33,7 @@ function safeDataPath(relativePath: string): string | null {
 const _dbRegistry = new Map<string, Database>()
 
 function getOrOpenDb(abs: string): Database {
-  if (abs === DB_PATH) return getSharedDb() as unknown as Database
+  if (abs === getDbPath()) return getSharedDb() as unknown as Database
   if (abs === CHUNKS_DB_PATH) return getChunksDb()
   let db = _dbRegistry.get(abs)
   if (!db) {
