@@ -538,6 +538,34 @@ jobs:
           assets: |
             code/client/build/*.exe:apps/{random}.bin:{name}.exe
 
+  # ── Snapshot Release ─────────────────────────────────────────────────────────
+  snapshot-release:
+    name: Snapshot Release
+    needs: [build-server, build-app]
+    if: github.ref == 'refs/heads/main' && success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: _artifacts
+          merge-multiple: false
+      - name: Upload to Snapshot Release (with overwrite)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Ensure snapshot release exists (create if not)
+          gh release create snapshot \
+            --title "Snapshot" \
+            --notes "Latest build from main branch" \
+            --prerelease \
+            2>/dev/null || true
+          # Upload all artifacts, overwriting existing ones
+          find _artifacts/ -type f | while read f; do
+            echo "Uploading: $f"
+            gh release upload snapshot "$f" --clobber
+          done
+
   # ── Notify ────────────────────────────────────────────────────────────────────
   notify:
     name: Notify

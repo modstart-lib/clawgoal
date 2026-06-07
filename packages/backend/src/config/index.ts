@@ -113,7 +113,7 @@ interface RawConfig {
   port?: number
   /** Public access URL of the service. Used by frontend for generating absolute links. */
   url?: string
-  database?: { url?: string; provider?: string }
+  database?: { provider?: string }
   auth?: {
     type?: string
     userId?: number
@@ -693,10 +693,6 @@ function _buildConfig() {
     return path.join(base, subPath)
   }
 
-  if (raw.database?.url) {
-    process.env.DATABASE_URL = raw.database.url
-  }
-
   // Set the database provider (mysql or sqlite), consumed by the Prisma schema and migrate.ts
   const dbProvider = (raw.database?.provider ?? 'mysql').toLowerCase()
 
@@ -707,21 +703,9 @@ function _buildConfig() {
   }
   process.env.DATABASE_PROVIDER = dbProvider
 
-  // Default SQLite URL
-  if (dbProvider === 'sqlite' && !process.env.DATABASE_URL) {
+  // SQLite: always derive URL from dataPath
+  if (dbProvider === 'sqlite') {
     process.env.DATABASE_URL = 'file:' + resolveDataSubPath('db/database.db')
-  }
-
-  // For SQLite, resolve relative file paths to absolute so Prisma can locate the file
-  // regardless of how it resolves paths internally (relative to schema.prisma vs CWD)
-  if (
-    dbProvider === 'sqlite' &&
-    process.env.DATABASE_URL?.startsWith('file:')
-  ) {
-    const filePart = process.env.DATABASE_URL.slice(5) // strip 'file:'
-    if (!path.isAbsolute(filePart)) {
-      process.env.DATABASE_URL = 'file:' + resolvePath(filePart)
-    }
   }
 
   // Parse model providers first (needed for Model config resolution)

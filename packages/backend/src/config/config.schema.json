@@ -37,16 +37,8 @@
           "enum": ["mysql", "sqlite"],
           "default": "mysql"
         },
-        "url": {
-          "type": "string",
-          "description": "Database connection URL",
-          "examples": [
-            "mysql://root:password@localhost:3306/clawgoal",
-            "file:./data/db.db"
-          ]
-        }
       },
-      "required": ["url"]
+      "required": []
     },
     "supervisorUserId": {
       "type": "integer",

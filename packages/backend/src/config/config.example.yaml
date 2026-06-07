@@ -29,13 +29,10 @@ backup:
   keepDays: 30
 
 # ─── Database ────────────────────────────────────────────────────────────────
+# When provider is sqlite, the database file is automatically located at
+# <dataPath>/db/database.db. No url is needed.
 database:
-  # Supported providers: sqlite | mysql
   provider: sqlite
-  # SQLite (default):
-  url: file:./data/db/database.db
-  # MySQL:
-  # url: "mysql://root:123456@localhost:3306/database?timezone=Asia/Shanghai"
 
 # Default user ID for system-level operations (setup.yaml seeding, API token auth, etc.).
 # Defaults to 1.
