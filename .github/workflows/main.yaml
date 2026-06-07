@@ -561,10 +561,14 @@ jobs:
             --notes "Latest build from main branch" \
             --prerelease \
             2>/dev/null || true
-          # Upload all artifacts, overwriting existing ones
+          # Upload all artifacts, stripping version number from filenames
           find _artifacts/ -type f | while read f; do
-            echo "Uploading: $f"
-            gh release upload snapshot "$f" --clobber
+            dir=$(dirname "$f")
+            base=$(basename "$f")
+            # Strip -<version> or -v<version> from filename (e.g. -0.1.0, -v0.1.0)
+            clean=$(echo "$base" | sed -E 's/-v?[0-9]+\.[0-9]+\.[0-9]+//')
+            echo "Uploading: $base → $clean"
+            gh release upload snapshot "$f" --clobber --name "$clean"
           done
 
   # ── Notify ────────────────────────────────────────────────────────────────────
