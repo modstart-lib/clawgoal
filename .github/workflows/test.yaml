@@ -1,0 +1,428 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
+
+jobs:
+  # ── Server binaries ──────────────────────────────────────────────────────────
+  build-server:
+    name: Build Server (${{ matrix.target }})
+    if: vars.BUILD_SERVER_ENABLE != 'false'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-latest
+            bin: clawgoal-linux-amd64
+          - target: linux-arm64
+            os: ubuntu-latest
+            bin: clawgoal-linux-arm64
+          - target: mac-x64
+            os: macos-latest
+            bin: clawgoal-mac-x64
+          - target: mac-arm64
+            os: macos-latest
+            bin: clawgoal-mac-arm64
+          - target: win-x64
+            os: windows-latest
+            bin: clawgoal-win-x64.exe
+          - target: win-arm64
+            os: windows-11-arm
+            bin: clawgoal-win-arm64.exe
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10.28.2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build backend-claw
+        run: pnpm --filter @clawgoal/backend-claw build
+
+      - name: Set BUILD_ID (Linux/macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        run: |
+          BUILD_ID="${{ matrix.target }}"
+          case "$BUILD_ID" in
+            linux-x64) BUILD_ID="linux-amd64" ;;
+            mac-x64)   BUILD_ID="darwin-amd64" ;;
+            mac-arm64) BUILD_ID="darwin-arm64" ;;
+          esac
+          BUILD_ID="${BUILD_ID}-$(date +%Y%m%d-%H%M%S)-${RANDOM}"
+          echo "BUILD_ID=${BUILD_ID}" >> $GITHUB_ENV
+
+      - name: Set BUILD_ID (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $target = "${{ matrix.target }}"
+          $plat = switch ($target) {
+            "win-x64"   { "windows-amd64" }
+            "win-arm64" { "windows-arm64" }
+          }
+          $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
+          $rn = Get-Random -Minimum 10000 -Maximum 99999
+          "BUILD_ID=${plat}-${ts}-${rn}" >> $env:GITHUB_ENV
+
+      - name: Build UI
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+          BUILD_HIDE_PRO: ${{ secrets.BUILD_HIDE_PRO }}
+          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
+        run: pnpm --filter @clawgoal/ui build
+
+      - name: Upload Sourcemaps
+        if: runner.os != 'Windows'
+        env:
+          GROW_URL: ${{ secrets.GROW_URL }}
+          GROW_APP_NAME: ${{ github.event.repository.name }}
+          GROW_ADMIN_API_TOKEN: ${{ secrets.GROW_ADMIN_API_TOKEN }}
+        run: |
+          echo "Uploading sourcemaps for BUILD_ID=${BUILD_ID} ..."
+          find packages/ui/dist -name '*.map' | while read f; do
+            echo "  uploading $f"
+            RESP=$(curl -s -X POST "${GROW_URL}/api/admin/grow/buildUpload" \
+              -H "Authorization: Bearer ${GROW_ADMIN_API_TOKEN}" \
+              -F "appName=${GROW_APP_NAME}" \
+              -F "buildId=${BUILD_ID}" \
+              -F "file=@${f}" \
+              -F "name=${f}")
+            echo "  response: ${RESP}"
+          done
+          echo "Sourcemap upload done."
+
+      - name: Upload Sourcemaps (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GROW_URL: ${{ secrets.GROW_URL }}
+          GROW_APP_NAME: ${{ github.event.repository.name }}
+          GROW_ADMIN_API_TOKEN: ${{ secrets.GROW_ADMIN_API_TOKEN }}
+        run: |
+          echo "Uploading sourcemaps for BUILD_ID=${env:BUILD_ID} ..."
+          Get-ChildItem -Path packages/ui/dist -Filter *.map -Recurse | ForEach-Object {
+            $f = $_.FullName
+            echo "  uploading $f"
+            $resp = curl -s -X POST "${env:GROW_URL}/api/admin/grow/buildUpload" `
+              -H "Authorization: Bearer ${env:GROW_ADMIN_API_TOKEN}" `
+              -F "appName=${env:GROW_APP_NAME}" `
+              -F "buildId=${env:BUILD_ID}" `
+              -F "file=@${f}" `
+              -F "name=${f}"
+            echo "  response: $resp"
+          }
+          echo "Sourcemap upload done."
+
+      - name: Build Server Binary (Linux/macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        env:
+          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
+        run: pnpm --filter @clawgoal/backend build ${{ matrix.target }}
+
+      - name: Cert Prepare for Server (macOS)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.CORP_MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.CORP_MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_CERTIFICATE" ]; then
+            echo "ERROR: CORP_MACOS_CERTIFICATE secret is not set."
+            exit 1
+          fi
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security unlock-keychain -p "" build.keychain
+          security find-identity -v -p codesigning build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" -t private build.keychain
+          security export -k build.keychain -t certs -f x509 -p -o certificate.cer
+          sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certificate.cer
+
+      - name: Sign Server Binary (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          codesign --deep --force --options runtime \
+            --sign "Developer ID Application" \
+            "packages/backend/dist/${{ matrix.bin }}"
+
+      - name: Build Server Binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
+        run: |
+          $target = "${{ matrix.target }}"
+          if ($target -eq "win-arm64" -and "${{ runner.arch }}" -eq "ARM64") {
+            pnpm --filter @clawgoal/backend build win-arm64-native
+          } else {
+            pnpm --filter @clawgoal/backend build $target
+          }
+
+      - name: Upload Server Artifact (Linux/macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        uses: actions/upload-artifact@v6
+        with:
+          name: clawgoal-server-${{ matrix.target }}
+          path: packages/backend/dist/${{ matrix.bin }}
+
+      - name: Upload Server Artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v6
+        with:
+          name: clawgoal-server-${{ matrix.target }}
+          path: packages/backend/dist/${{ matrix.bin }}
+
+  # ── Desktop app (Electron) ───────────────────────────────────────────────────
+  build-app:
+    name: Build App (${{ matrix.name }})
+    if: vars.BUILD_CLIENT_ENABLE != 'false'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-latest
+            server_target: linux-x64
+            server_bin: clawgoal-linux-amd64
+          - name: mac-x64
+            os: macos-latest
+            server_target: mac-x64
+            server_bin: clawgoal-mac-x64
+          - name: mac-arm64
+            os: macos-latest
+            server_target: mac-arm64
+            server_bin: clawgoal-mac-arm64
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            server_target: linux-arm64
+            server_bin: clawgoal-linux-arm64
+          - name: win-x64
+            os: windows-latest
+            server_target: win-x64
+            server_bin: clawgoal-win-x64.exe
+          - name: win-arm64
+            os: windows-11-arm
+            server_target: win-arm64
+            server_bin: clawgoal-win-arm64.exe
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10.28.2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libfuse2 fuse
+
+      - name: Cert Prepare (macOS)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.CORP_MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.CORP_MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_CERTIFICATE" ]; then
+            echo "ERROR: CORP_MACOS_CERTIFICATE secret is not set. macOS signing requires a valid certificate."
+            exit 1
+          fi
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security unlock-keychain -p "" build.keychain
+          security find-identity -v -p codesigning build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" -t private build.keychain
+          security export -k build.keychain -t certs -f x509 -p -o certificate.cer
+          sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certificate.cer
+
+      - name: Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Set BUILD_ID for App (Linux/macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        run: |
+          BUILD_ID="${{ matrix.server_target }}"
+          case "$BUILD_ID" in
+            linux-x64) BUILD_ID="linux-amd64" ;;
+            mac-x64)   BUILD_ID="darwin-amd64" ;;
+            mac-arm64) BUILD_ID="darwin-arm64" ;;
+          esac
+          BUILD_ID="${BUILD_ID}-$(date +%Y%m%d-%H%M%S)-${RANDOM}"
+          echo "BUILD_ID=${BUILD_ID}" >> $GITHUB_ENV
+
+      - name: Set BUILD_ID for App (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $target = "${{ matrix.server_target }}"
+          $plat = switch ($target) {
+            "win-x64"   { "windows-amd64" }
+            "win-arm64" { "windows-arm64" }
+          }
+          $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
+          $rn = Get-Random -Minimum 10000 -Maximum 99999
+          "BUILD_ID=${plat}-${ts}-${rn}" >> $env:GITHUB_ENV
+
+      - name: Build frontend & backend-claw
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+          BUILD_HIDE_PRO: ${{ secrets.BUILD_HIDE_PRO }}
+          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
+        run: pnpm --filter @clawgoal/backend-claw build && pnpm --filter @clawgoal/ui build
+
+      - name: Upload Sourcemaps
+        if: runner.os != 'Windows'
+        env:
+          GROW_URL: ${{ secrets.GROW_URL }}
+          GROW_APP_NAME: ${{ github.event.repository.name }}
+          GROW_ADMIN_API_TOKEN: ${{ secrets.GROW_ADMIN_API_TOKEN }}
+        run: |
+          echo "Uploading sourcemaps for BUILD_ID=${BUILD_ID} ..."
+          find packages/ui/dist -name '*.map' | while read f; do
+            echo "  uploading $f"
+            RESP=$(curl -s -X POST "${GROW_URL}/api/admin/grow/buildUpload" \
+              -H "Authorization: Bearer ${GROW_ADMIN_API_TOKEN}" \
+              -F "appName=${GROW_APP_NAME}" \
+              -F "buildId=${BUILD_ID}" \
+              -F "file=@${f}" \
+              -F "name=${f}")
+            echo "  response: ${RESP}"
+          done
+          echo "Sourcemap upload done."
+
+      - name: Upload Sourcemaps (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GROW_URL: ${{ secrets.GROW_URL }}
+          GROW_APP_NAME: ${{ github.event.repository.name }}
+          GROW_ADMIN_API_TOKEN: ${{ secrets.GROW_ADMIN_API_TOKEN }}
+        run: |
+          echo "Uploading sourcemaps for BUILD_ID=${env:BUILD_ID} ..."
+          Get-ChildItem -Path packages/ui/dist -Filter *.map -Recurse | ForEach-Object {
+            $f = $_.FullName
+            echo "  uploading $f"
+            $resp = curl -s -X POST "${env:GROW_URL}/api/admin/grow/buildUpload" `
+              -H "Authorization: Bearer ${env:GROW_ADMIN_API_TOKEN}" `
+              -F "appName=${env:GROW_APP_NAME}" `
+              -F "buildId=${env:BUILD_ID}" `
+              -F "file=@${f}" `
+              -F "name=${f}"
+            echo "  response: $resp"
+          }
+          echo "Sourcemap upload done."
+
+      - name: Build Server Binary for App (Linux/macOS)
+        if: runner.os != 'Windows'
+        env:
+          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
+        run: pnpm --filter @clawgoal/backend build ${{ matrix.server_target }}
+
+      - name: Build Server Binary for App (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
+        run: pnpm --filter @clawgoal/backend build ${{ matrix.server_target }}
+
+      - name: Build & Package Electron App
+        working-directory: client
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ELECTRON_MIRROR: ${{ secrets.ELECTRON_MIRROR }}
+        run: node scripts/build.cjs --full "../packages/backend/dist/${{ matrix.server_bin }}"
+
+      - name: List build output (debug Linux)
+        if: runner.os == 'Linux'
+        working-directory: client
+        run: |
+          echo "=== build/ directory ==="
+          ls -la build/ 2>/dev/null || echo "(empty or missing)"
+          echo "=== find all .AppImage .deb ==="
+          find . -name "*.AppImage" -o -name "*.deb" 2>/dev/null | head -20
+          echo "=== pwd ==="
+          pwd
+
+      - name: Upload App Artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v6
+        with:
+          name: clawgoal-app-${{ matrix.name }}
+          path: |
+            client/build/*.AppImage
+            client/build/*.deb
+
+      - name: Upload App Artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v6
+        with:
+          name: clawgoal-app-${{ matrix.name }}
+          path: client/build/*.dmg
+
+      - name: Upload App Artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v6
+        with:
+          name: clawgoal-app-${{ matrix.name }}
+          path: client/build/*.exe
+
+  # ── Notify ────────────────────────────────────────────────────────────────────
+  notify:
+    name: Notify
+    needs: [build-server, build-app]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Notify Webhook
+        run: |
+          NAME="${{ github.event.repository.name }}"
+          TYPE=$(echo "${{ github.workflow }}" | tr '[:upper:]' '[:lower:]')
+          VERSION=$(node -p "require('./package.json').version")
+          curl -X POST "${{ secrets.HOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"event\":\"${NAME}\",\"param\":{\"name\":\"${NAME}\",\"type\":\"${TYPE}\",\"version\":\"${VERSION}\"},\"data\":{\"name\":\"${NAME}\",\"type\":\"${TYPE}\",\"version\":\"${VERSION}\"}}"

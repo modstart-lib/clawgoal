@@ -1,0 +1,13 @@
+packages:
+  - 'packages/*'
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - core-js
+  - esbuild
+  - onnxruntime-node
+  - prisma
+  - protobufjs
+  - sharp
+  - vue-demi

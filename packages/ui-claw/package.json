@@ -1,0 +1,22 @@
+{
+  "name": "@clawgoal/ui-claw",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "ClawGoal Frontend UI",
+  "scripts": {
+    "sync-scene": "node scripts/sync-scene.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@clawgoal/ui": "workspace:*",
+    "@git-diff-view/vue": "^0.1.5",
+    "cube-character": "0.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.3",
+    "typescript": "^5.7.2"
+  }
+}

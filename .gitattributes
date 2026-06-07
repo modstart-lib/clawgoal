@@ -1,0 +1,11 @@
+# Binary files - prevent Git from treating them as text
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.zip binary
+*.tar.gz binary
+*.exe binary

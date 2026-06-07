@@ -1,0 +1,148 @@
+# yaml-language-server: $schema=../../role.schema.json
+name: programer
+title: T(claw.programer.title)
+description: T(claw.programer.description)
+avatar: system:programer
+soul:
+  You love clean, elegant code and strive for the principle that "less is more."
+  You read before you act, design before you code, and ensure every change is traceable.
+param:
+  - name: codespace
+    title: 代码根路径
+    description: 让不同的智能体负责不同的项目，可以让项目处理越来越专业
+    type: text
+    defaultValue: ''
+    required: true
+  - name: runtime
+    title: 默认 Runtime
+    type: text
+    defaultValue: 'local'
+    required: false
+  - name: runner
+    title: 默认 AI Studio Runner
+    type: text
+    defaultValue: 'opencode'
+    required: false
+model:
+  maxToolRounds: 20
+models:
+  intent_router:
+    name: default
+    temperature: 0.0
+    maxTokens: 16
+    systemPrompt: |
+      Output exactly ONE word based on the user's message:
+      - "coder": user wants to write/create/modify/fix code or files
+      - "chat": anything else
+  resolver:
+    name: default
+    temperature: 0.1
+    maxTokens: 512
+    systemPrompt: |
+      You are a configuration resolver. Your only job: validate runtime and call context_set.
+      Allowed tools: runtime_list, context_set, asks. Do NOT write any code.
+
+      Defaults (do not ask user):
+      - codespace: {{agent.param.codespace}}
+      - runtime: {{agent.param.runtime}}
+      - runner: {{agent.param.runner}}
+
+      Steps:
+      1. Call runtime_list immediately (no preamble).
+      2. Pick runtime/runner: use user-specified value if provided, otherwise use defaults.
+         Accept: "用 macbook-pro" / "runtime=macbook-pro" / "runner 选 opencode"
+      3. If runtime not in list → asks("Runtime '<name>' not found. Available: <list>") and stop.
+      4. If valid → context_set(key="studioResolved", value="codespace={{agent.param.codespace}} runtime=<name> runner=<runner>")
+         Output: "Configuration confirmed: codespace={{agent.param.codespace}} runtime=<name> runner=<runner>"
+  review_router:
+    name: default
+    temperature: 0.0
+    maxTokens: 16
+    systemPrompt: |
+      Output exactly ONE word based on the user's last message:
+      - approved  (accepts / confirms / approves the changes)
+      - rejected  (rejects / requests modifications / wants fixes)
+      - cancelled (cancels / abandons the changes)
+capabilities:
+  tools:
+    - runtime_list
+    - runtime_execute
+    - context_set
+    - asks
+  skills:
+    - programer-dev-init
+  mcps: []
+permissions:
+  globalMemoryRead: true
+  globalMemoryUpdate: false
+agents:
+  coder:
+    description: 'Resolve config, write code, and pause for review'
+    graph:
+      entryPoint: resolver_check
+      nodes:
+        # -- Step 1: check config
+        - name: resolver_check
+          type: code
+          codeWorkflow: coder
+        # -- Step 2: resolver loop
+        - name: resolver
+          type: model
+          modelSlot: resolver
+          useTools: true
+          allowTools: [runtime_list, context_set, asks]
+        # -- Step 3: coder
+        - name: coder
+          type: code
+          codeWorkflow: coder
+        # -- Step 4: post coder (pause for review)
+        - name: post_coder
+          type: code
+          codeWorkflow: coder
+      edges:
+        - from: resolver_check
+          condition: resolver_check
+          branches:
+            - equals: resolver
+              next: resolver
+            - equals: coder
+              next: coder
+        - from: resolver
+          to: resolver_check
+          loop: true
+        - from: coder
+          condition: coder
+          branches:
+            - equals: post_coder
+              next: post_coder
+  merger:
+    description: 'Route user review decision and apply or restore changes'
+    graph:
+      entryPoint: review_router
+      nodes:
+        # -- Step 1: review router
+        - name: review_router
+          type: router
+          modelSlot: review_router
+        # -- Step 2a: merger
+        - name: merger
+          type: code
+          codeWorkflow: merger
+        # -- Step 2b: restorer
+        - name: restorer
+          type: code
+          codeWorkflow: merger
+        # -- Step 2c: canceller
+        - name: canceller
+          type: code
+          codeWorkflow: merger
+      edges:
+        - from: review_router
+          condition: review_router
+          branches:
+            - equals: approved
+              next: merger
+            - equals: rejected
+              next: restorer
+            - equals: cancelled
+              next: canceller

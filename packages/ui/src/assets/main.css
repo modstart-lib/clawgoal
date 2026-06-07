@@ -1,0 +1,80 @@
+/* 导入 Ant Design 样式 */
+@import "ant-design-vue/dist/reset.css";
+
+/* 导入 Tailwind - 完全不使用 @layer */
+@import "tailwindcss/theme.css";
+@import "tailwindcss/utilities.css";
+
+/* 视觉设计 Tokens（颜色、背景等统一在此文件配置） */
+@import "../theme/tokens.css";
+
+/* Tailwind v4: 扫描子包中的 Vue 文件（v4 用 @source 替代 tailwind.config 的 content 选项）*/
+@source "../../../ui-claw/src";
+
+/* Tailwind v4: 将 dark: 变体配置为 class 模式（而非默认的媒体查询模式） */
+@variant dark (&:where(.dark, .dark *));
+
+.debug {
+    border: 1px solid red;
+}
+
+body {
+    font-size: 14px;
+    background-color: #f8fafc;
+    color: var(--token-text);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+html.dark body {
+    background-color: #09090b;
+}
+
+html.dark {
+    background-color: #09090b;
+    color-scheme: dark;
+}
+
+/* 全局自定义样式 */
+.ant-table-tbody .ant-table-row-selected>td {
+    background-color: #fffbe6 !important;
+}
+
+.ant-table-tbody .ant-table-row-selected:hover>td {
+    background-color: #fff1b8 !important;
+}
+
+.md-editor-toolbar {
+    border: none !important;
+}
+
+.ant-modal {
+    top: 5vh;
+}
+
+.ant-btn-primary {
+    box-shadow: none;
+}
+
+.ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+    background-color: #EEE;
+}
+
+.ant-tabs .ant-tabs-tab {
+    padding: 0.5rem 1rem;
+}
+
+.ant-tabs .ant-tabs-tab+.ant-tabs-tab {
+    margin: 0;
+}
+
+.dark .ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: #FFFFFF;
+}
+
+.dark .ant-tabs .ant-tabs-ink-bar {
+    background-color: #FFFFFF;
+}
+
+.dark .ant-tabs .ant-tabs-tab:hover {
+    color: #FFFFFF;
+}

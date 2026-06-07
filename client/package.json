@@ -1,0 +1,59 @@
+{
+  "name": "clawgoal-client",
+  "version": "1.0.0",
+  "description": "ClawGoal - Agents Go for Goals",
+  "homepage": "https://clawgoal.com",
+  "author": {
+    "name": "MZ",
+    "email": "modstart@163.com"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder --config --dir",
+    "dist": "electron-builder --config",
+    "pack": "electron-builder --config --dir"
+  },
+  "build": {
+    "appId": "com.clawgoal.app",
+    "productName": "ClawGoal",
+    "directories": {
+      "output": "build"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "build/iconfile.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "resources/entitlements.mac.plist",
+      "entitlementsInherit": "resources/entitlements.mac.plist"
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/windows/icon.ico"
+    },
+    "linux": {
+      "target": ["deb", "AppImage"],
+      "icon": "build/appicon.png",
+      "category": "Utility"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "frontend/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": ["**/*"]
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.0"
+  }
+}

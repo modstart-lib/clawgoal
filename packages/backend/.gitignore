@@ -1,0 +1,19 @@
+node_modules/
+dist/
+*.log
+.env
+config.rightcodes.json
+.DS_Store
+
+# 构建时自动生成，勿手动编辑
+src/generated/uiAssets.ts
+src/generated/bundledRoles.ts
+src/generated/apiDocData.ts
+src/generated/buildId.ts
+
+# Prisma
+*.db
+*.db-journal
+/data/memory/
+/data/model-cache/
+/data/*.db

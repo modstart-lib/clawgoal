@@ -1,0 +1,16 @@
+export default {
+  'claw.event.edit': '修改',
+  'claw.event.share': '分享',
+  'claw.event.shareLink': '分享地址',
+  'claw.event.unshare': '关闭分享',
+  'claw.event.delete': '删除',
+  'claw.event.dateLabel': '日期',
+  'claw.event.copyIdHint': '点击复制 ID',
+  'claw.event.createLabel': '创建：',
+  'claw.event.searchPlaceholder': '搜索事件...',
+  'claw.event.typeFilterTitle': '类型',
+  'claw.event.shareFailed': '分享失败',
+  'claw.event.unshareFailed': '操作失败',
+  'claw.event.unshareSuccess': '已关闭分享',
+  'claw.event.metaTitle': 'Meta',
+} as const

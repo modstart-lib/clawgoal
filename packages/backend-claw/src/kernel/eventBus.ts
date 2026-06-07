@@ -1,0 +1,477 @@
+/**
+ * Central event bus for the bot system.
+ * All inter-component communication (Telegram ↔ Gateway ↔ Model) flows through this bus,
+ * keeping adapters, the gateway, and the Model kernel fully decoupled.
+ *
+ * Event flow:
+ *   TelegramAdapter  ──► message:incoming  ──► BotGateway (processes via Model)
+ *   BotGateway       ──► message:typing    ──► TelegramAdapter (sends typing indicator)
+ *   BotGateway       ──► message:outgoing  ──► TelegramAdapter (sends reply)
+ *   BotGateway       ──► tool:start / tool:end  (observability)
+ *   BotGateway       ──► agent:started / agent:stopped  (lifecycle)
+ *   Any component    ──► bot:error         (error reporting)
+ */
+
+import type { AgentContext, ClawMessage } from '../types/index.js'
+
+// ─── Event payload types ──────────────────────────────────────────────────────
+
+/** Emitted by a channel adapter when a new user message arrives */
+export interface IncomingMessageEvent {
+  agentId: number
+  chatId: number
+  /** Channel-agnostic message content — use content.text for plain text */
+  content: ClawMessage
+  userId: number
+  username?: string
+  firstName?: string
+  messageId: number
+  timestamp: Date
+  /** ID of the channel (claw_channel table) that received this message；0 = web 渠道或无特定渠道，非零为实际渠道 ID */
+  channelId: number
+  /**
+   * Origin channel of this message.
+   * - 'channel'    — message came from an external channel (Telegram, etc.)
+   * - 'web'        — message was sent through the web WebSocket interface
+   * - 'task_job'   — message from a task dispatcher
+   * - 'cron'       — message from a scheduled cron task
+   * - 'agent_call' — message from a sub-agent call inside a tool
+   * Defaults to 'channel' when absent (for backwards-compatibility).
+   */
+  source?: 'channel' | 'web' | 'task_job' | 'cron' | 'agent_call'
+  /** Session ID for this message，必须 > 0（由 resolveIncomingSession 在 emit 前保证） */
+  sessionId: number
+  /** Opaque token used to correlate this incoming message with its outgoing reply (e.g. web channel) */
+  correlationId?: string
+  /** Task ID for task_job messages — passed through to processMessage and agentContext */
+  taskId?: number
+}
+
+/** Emitted by the gateway when a processed reply is ready to be sent */
+export interface OutgoingMessageEvent {
+  agentId: number
+  chatId: number
+  /** Channel-agnostic message content — use content.text for plain text */
+  content: ClawMessage
+  /** SaaS user id (required for multi-tenant logging/routing) */
+  userId: number
+  /** True when the message represents an error reply */
+  isError?: boolean
+  /** Propagated from the originating IncomingMessageEvent — used to route the reply back to the correct channel */
+  channelId?: number
+  /**
+   * Origin channel of the conversation that triggered this reply.
+   * - 'channel' — reply to a message from an external channel (Telegram, etc.) → should be forwarded to that channel
+   * - 'web'    — reply to a message sent through the web UI → must NOT be forwarded to external channels
+   * - 'cron'   — proactive message from a scheduled cron task → routed by channel binding
+   * - 'webhook' — proactive message pushed via agent webhook token → routed by channel binding
+   * - 'task_job'   — reply from a task_job unit dispatched by the task_job dispatcher
+   * - 'agent_call' — reply from a sub-agent call inside a tool
+   * Defaults to 'channel' when absent (for backwards-compatibility).
+   */
+  source?: 'channel' | 'web' | 'cron' | 'webhook' | 'task_job' | 'agent_call'
+  /** Session ID for this message (0 = no session) */
+  sessionId?: number
+  /** Opaque token propagated from the originating IncomingMessageEvent — used to resolve per-request promises on the web channel */
+  correlationId?: string
+  /** Agent execution context — shared from the originating processMessage call for consistent logging */
+  agentContext: AgentContext
+  /**
+   * Optional full AgentMessageContent for DB persistence.
+   * When present, agentLog.ts uses this instead of constructing content from evt.content.
+   * Used for rich messages (asks, stageItems, etc.) that need extra fields preserved.
+   */
+  dbContent?: import('../storage/store/types.js').AgentMessageContent
+  /**
+   * Optional stable message ID (e.g. toolCallId) — when set, the web channel
+   * broadcasts with this id so the frontend can update the existing message
+   * instead of inserting a duplicate.
+   */
+  msgId?: string
+}
+
+/** Emitted by the gateway after receiving a message:incoming, before Model processing starts */
+export interface TypingEvent {
+  agentId: number
+  chatId: number
+  /** Propagated from the originating IncomingMessageEvent */
+  channelId?: number
+}
+
+/** Emitted when a agent bot is started or stopped */
+export interface AgentLifecycleEvent {
+  agentId: number
+  agentTitle: string
+}
+
+/** Emitted when a tool execution begins */
+export interface ToolStartEvent {
+  agentId: number
+  chatId: number
+  toolName: string /** Unique ID for this tool call — auto-generated by the caller and shared across tool:start / tool:progress / tool:end */
+  toolCallId: string /** Tool call arguments */
+  params?: Record<string, unknown>
+  /** Propagated from the originating IncomingMessageEvent — used to route to the correct channel */
+  channelId?: number
+}
+
+/** Emitted when a tool execution completes */
+export interface ToolEndEvent {
+  agentId: number
+  chatId: number
+  toolName: string
+  /** Matches the toolCallId from the corresponding tool:start event */
+  toolCallId: string
+  success: boolean
+  /** Execution duration in milliseconds */
+  durationMs: number
+  /** Tool output / error (may be truncated) */
+  result?: string
+  /** Propagated from the originating IncomingMessageEvent — used to route to the correct channel */
+  channelId?: number
+}
+
+/** Emitted during tool execution to report a single-step progress update for the running tool call. */
+export interface ToolProgressEvent {
+  agentId: number
+  chatId: number
+  toolName: string
+  /** Matches the toolCallId from the corresponding tool:start event */
+  toolCallId: string
+  /** Unique ID for this step — used to upsert the step in the stageItem's steps array */
+  stepId: string
+  stepTitle: string
+  stepStatus: 'running' | 'success' | 'error'
+  stepContent: string
+  /** Optional metadata to merge into the stageItem's meta field (e.g. { sessionId }) */
+  meta?: Record<string, any>
+}
+
+/** Emitted when any component encounters an error */
+export interface BotErrorEvent {
+  agentId: number
+  chatId?: number
+  error: string
+}
+
+/** Emitted when a channel adapter successfully connects */
+export interface ChannelLifecycleEvent {
+  channelId: number
+  channelTitle: string
+  channelType: string
+}
+
+/** Emitted when a channel adapter encounters an error */
+export interface ChannelErrorEvent {
+  channelId: number
+  channelTitle: string
+  error: string
+}
+
+/**
+ * Emitted when a channel configuration is created or updated.
+ * ChannelManager listens to this and automatically start/stop/restart the adapter.
+ */
+export interface ChannelConfigChangedEvent {
+  channelId: number
+}
+
+/**
+ * Emitted when a channel record is deleted.
+ * ChannelManager listens to this and stops the running adapter if any.
+ */
+export interface ChannelConfigDeletedEvent {
+  channelId: number
+}
+
+/**
+ * Emitted when a user requests to clear the in-memory conversation history for a agent.
+ * The Model module listens to this event and evicts the cached history for the given agent.
+ */
+export interface SessionClearEvent {
+  /** Agent whose in-memory conversation history should be cleared */
+  agentId: number
+  /** Session ID to clear (0 = clear agent-level cache for legacy/no-session mode) */
+  sessionId: number
+}
+
+/**
+ * Emitted when an agent's agentic loop reaches maxToolRounds without producing a final text response.
+ * Listeners (Telegram adapter, WebSocket service) should prompt the user to continue.
+ */
+export interface MaxRoundsReachedEvent {
+  /** The agent that hit the limit */
+  agentId: number
+  /** The chat the conversation belongs to */
+  chatId: number
+  /** Channel that received the original message (undefined for web) */
+  channelId?: number
+  /** SaaS user id — propagated to outgoing events on continuation */
+  userId: number
+}
+
+/**
+ * Emitted to resume an agentic loop that was paused at maxToolRounds.
+ * model.ts listens to this event, retrieves the pending state, and continues the loop.
+ */
+export interface AgentContinueRoundsEvent {
+  agentId: number
+  chatId: number
+  channelId?: number
+}
+
+/** Emitted when a runtime client connects or disconnects */
+export interface RuntimeLifecycleEvent {
+  runtimeId: number
+  runtimeTitle: string
+}
+
+/** Emitted when a runtime's runner list is changed via syncRunner */
+export interface RuntimeRunnersChangedEvent {
+  runtimeId: number
+  runtimeTitle: string
+}
+
+/** Emitted when a cron task begins execution */
+export interface CronStartEvent {
+  cronId: number
+  cronTitle: string
+  /** Agent id when the task runs in agent mode */
+  agentId?: number
+}
+
+/** Emitted when a cron task finishes execution */
+export interface CronEndEvent {
+  cronId: number
+  cronTitle: string
+  /** Agent id when the task runs in agent mode */
+  agentId?: number
+  status: 'success' | 'error'
+  /** Summary result returned by the task */
+  result: string
+  /** Total wall-clock duration in milliseconds */
+  durationMs: number
+  /** Whether to send a success notification (default false) */
+  successNotify?: boolean
+  /** Shell command (only present for shell-type tasks) */
+  shell?: string
+  /** Working directory (only present for shell-type tasks) */
+  workdir?: string
+}
+
+/** Emitted when an agent graph workflow starts executing */
+export interface WorkflowStartEvent {
+  agentId: number
+  chatId: number
+  sessionId: number
+  pipelineKey: string
+  workflowId: number
+}
+
+/** Emitted when an agent graph workflow finishes (success, error, or paused) */
+export interface WorkflowEndEvent {
+  agentId: number
+  chatId: number
+  sessionId: number
+  pipelineKey: string
+}
+
+// ─── Typed event map ──────────────────────────────────────────────────────────
+
+interface ClawEventMap {
+  // ── Gateway / message pipeline ──────────────────────────────────────────
+  'message:incoming': [IncomingMessageEvent]
+  'message:outgoing': [OutgoingMessageEvent]
+  'message:typing': [TypingEvent]
+  'message:accepted': [MessageAcceptedEvent]
+
+  // ── Agent lifecycle & loop control ──────────────────────────────────────
+  'agent:started': [AgentLifecycleEvent]
+  'agent:stopped': [AgentLifecycleEvent]
+  'agent:maxRoundsReached': [MaxRoundsReachedEvent]
+  'agent:continueRounds': [AgentContinueRoundsEvent]
+  'agent:updated': [{ agentId: number }]
+
+  // ── Tool execution ───────────────────────────────────────────────────────
+  'tool:start': [ToolStartEvent]
+  'tool:end': [ToolEndEvent]
+  'tool:progress': [ToolProgressEvent]
+
+  // ── Session ──────────────────────────────────────────────────────────────
+  'session:clear': [SessionClearEvent]
+
+  // ── Channel adapter ──────────────────────────────────────────────────────
+  'channel:connected': [ChannelLifecycleEvent]
+  'channel:disconnected': [ChannelLifecycleEvent]
+  'channel:error': [ChannelErrorEvent]
+  'channel:configChanged': [ChannelConfigChangedEvent]
+  'channel:configDeleted': [ChannelConfigDeletedEvent]
+
+  // ── Runtime ───────────────────────────────────────────────────
+  'runtime:connected': [RuntimeLifecycleEvent]
+  'runtime:disconnected': [RuntimeLifecycleEvent]
+  'runtime:runnersChanged': [RuntimeRunnersChangedEvent]
+
+  // ── Cron ─────────────────────────────────────────────────────────────────
+  'cron:start': [CronStartEvent]
+  'cron:end': [CronEndEvent]
+
+  // ── Workflow ──────────────────────────────────────────────────────────────
+  'workflow:start': [WorkflowStartEvent]
+  'workflow:end': [WorkflowEndEvent]
+
+  // ── Task ─────────────────────────────────────────────────────────────────
+  'task:updated': [TaskUpdatedEvent]
+  'task:paused': [TaskPausedEvent]
+
+  // ── Asks ─────────────────────────────────────────────────────────────────
+  'asks:answered': [AsksAnsweredEvent]
+
+  // ── MCP ──────────────────────────────────────────────────────────────────
+  'mcp:connected': [{ mcpId: number; mcpName: string }]
+  'mcp:disconnected': [{ mcpId: number; mcpName: string }]
+
+  // ── Error ────────────────────────────────────────────────────────────────
+  'bot:error': [BotErrorEvent]
+}
+
+/** Emitted when a task status or processing field is updated */
+export interface TaskUpdatedEvent {
+  taskId: number
+  status?: string
+  processing?: string
+}
+
+/** Emitted by the gateway when asks tool pauses a task_job execution waiting for user input */
+export interface TaskPausedEvent {
+  taskId: number
+  agentId: number
+  sessionId: number
+}
+
+/**
+ * Emitted by agentLog.ts after resolveAsksAnswers successfully writes answered fields back to DB.
+ * Web channel listens to this and broadcasts the updated message to all subscribers.
+ */
+export interface AsksAnsweredEvent {
+  agentId: number
+  sessionId: number
+  /** DB row ID of the asks message that was updated */
+  msgId: number
+  /** Updated message content (with answered fields filled in) */
+  content: import('../storage/store/types.js').AgentMessageContent
+}
+
+/**
+ * Emitted by agentLog.ts immediately after a user message is persisted to the DB.
+ * Only emitted when the incoming event carries a correlationId (i.e. web channel).
+ * Allows the web channel to return the real DB message ID to the client without
+ * waiting for the agent to finish processing.
+ */
+export interface MessageAcceptedEvent {
+  /** Matches the correlationId from the originating IncomingMessageEvent */
+  correlationId: string
+  /** The auto-incremented claw_chat_message.id assigned by the DB */
+  messageId: number
+  /** The session the message was written into */
+  sessionId: number
+  agentId: number
+}
+
+// ─── Typed EventBus with async queue ────────────────────────────────────────
+
+class ClawEventBus {
+  private listenerMap = new Map<
+    string,
+    Array<{ fn: (...args: any[]) => void | Promise<void>; once: boolean }>
+  >()
+  private queue: Array<{ key: string; args: any[]; resolve: () => void }> = []
+  private processing = false
+
+  /**
+   * Emit an event — enqueues it and waits for all listeners to finish in registration order
+   */
+  async emit<K extends keyof ClawEventMap>(
+    event: K,
+    ...args: ClawEventMap[K]
+  ): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      this.queue.push({
+        key: event as string,
+        args,
+        resolve: () => resolve(true),
+      })
+      void this.processQueue()
+    })
+  }
+
+  private async processQueue(): Promise<void> {
+    if (this.processing) return
+    this.processing = true
+    while (this.queue.length > 0) {
+      const item = this.queue.shift()!
+      await this.dispatchEvent(item.key, item.args)
+      item.resolve()
+    }
+    this.processing = false
+  }
+
+  private async dispatchEvent(key: string, args: any[]): Promise<void> {
+    const entries = this.listenerMap.get(key)
+    if (!entries || entries.length === 0) return
+    const toInvoke = [...entries]
+    this.listenerMap.set(
+      key,
+      entries.filter((e) => !e.once)
+    )
+    for (const entry of toInvoke) {
+      try {
+        await entry.fn(...args)
+      } catch (_) {}
+    }
+  }
+
+  on<K extends keyof ClawEventMap>(
+    event: K,
+    listener: (...args: ClawEventMap[K]) => void | Promise<void>
+  ): this {
+    this.registerListener(event as string, listener as any, false)
+    return this
+  }
+
+  once<K extends keyof ClawEventMap>(
+    event: K,
+    listener: (...args: ClawEventMap[K]) => void | Promise<void>
+  ): this {
+    this.registerListener(event as string, listener as any, true)
+    return this
+  }
+
+  off<K extends keyof ClawEventMap>(
+    event: K,
+    listener: (...args: ClawEventMap[K]) => void | Promise<void>
+  ): this {
+    const entries = this.listenerMap.get(event as string)
+    if (entries) {
+      this.listenerMap.set(
+        event as string,
+        entries.filter((e) => e.fn !== listener)
+      )
+    }
+    return this
+  }
+
+  private registerListener(
+    key: string,
+    fn: (...args: any[]) => void | Promise<void>,
+    once: boolean
+  ): void {
+    if (!this.listenerMap.has(key)) {
+      this.listenerMap.set(key, [])
+    }
+    this.listenerMap.get(key)!.push({ fn, once })
+  }
+}
+
+/** Singleton claw event bus — import this in adapters, gateway, and any observer */
+export const clawEventBus = new ClawEventBus()

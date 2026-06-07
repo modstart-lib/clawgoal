@@ -1,0 +1,251 @@
+# yaml-language-server: $schema=./config.schema.json
+
+# ─── Server ──────────────────────────────────────────────────────────────────
+# HTTP port the server listens on.
+port: 53001
+
+# UTC offset in hours for cron scheduling and LLM time injection.
+# e.g. 8 = UTC+8 (Asia/Shanghai), -5 = UTC-5 (EST)
+timezone: 8
+
+# Default system language. Used as the last-resort fallback when the client sends
+# no Accept-Language header and the user has no personalised language configured.
+# Supported values: en-US | zh-CN
+lang: en-US
+
+# Base data directory: logs, uploads, database, agent tasks, etc.
+# Defaults to ~/.clawgoal/data when not set.
+# Supports ~ home-directory alias (e.g. ~/mydata) and absolute paths.
+# The config.yaml itself is resolved from this directory (<dataPath>/config.yaml).
+# Can also be overridden before startup via the DATA_PATH environment variable.
+# dataPath: ~/.clawgoal/data
+
+# ─── Backup ──────────────────────────────────────────────────────────────────
+backup:
+  enable: true
+  # 5-part cron expression (min hour dom month dow), evaluated in the configured timezone.
+  cron: 0 2 */3 * *
+  # Number of days to retain backup snapshots; 0 = keep all backups forever.
+  keepDays: 30
+
+# ─── Database ────────────────────────────────────────────────────────────────
+database:
+  # Supported providers: sqlite | mysql
+  provider: sqlite
+  # SQLite (default):
+  url: file:./data/db/database.db
+  # MySQL:
+  # url: "mysql://root:123456@localhost:3306/database?timezone=Asia/Shanghai"
+
+# Default user ID for system-level operations (setup.yaml seeding, API token auth, etc.).
+# Defaults to 1.
+supervisorUserId: 1
+
+# Default tenant ID for system-level operations. Defaults to 1.
+supervisorTenantId: 1
+
+# ─── Auth ─────────────────────────────────────────────────────────────────────
+auth:
+  # 'fixed'   = single-user mode (username/password login)
+  # 'database' = multi-user database mode
+  type: fixed
+  userId: 1
+  tenantId: 1
+  username: user
+  password: password
+
+# ─── JWT ──────────────────────────────────────────────────────────────────────
+jwt:
+  # Secret key for signing JWT tokens. Must be at least 16 characters.
+  # Change this before deploying to production.
+  secret: your-secret-key-change-in-production-2026
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+# log:
+#   # Custom directory for log files. Defaults to '<dataPath>/logs/'
+#   path: /custom/log/path/
+
+# ─── Upload ───────────────────────────────────────────────────────────────────
+upload:
+  # Storage backend: local | aliyunOss | tencentCos | qiniu | awsS3 | azureBlob | modstart
+  type: local
+  # Public base URL used to build file access links.
+  url: "http://localhost:53001/uploads/"
+  # Allowed file extensions (comma-separated, no leading dots).
+  limitExt: "jpg,png,gif,svg,doc,docx,xls,xlsx"
+  # Maximum upload size in bytes (default: 1 MB = 1,024,000 bytes).
+  limitSize: 1024000
+  local:
+    # Storage directory. Defaults to '<dataPath>/uploads/'
+    path: ""
+
+  # ── Aliyun OSS (uncomment to enable) ───────────────────────────────────────
+  # aliyunOss:
+  #   accessKeyId: your-access-key-id
+  #   accessKeySecret: your-access-key-secret
+  #   bucket: your-bucket-name
+  #   region: oss-cn-hangzhou
+  #   endpoint: ""                # optional custom endpoint
+
+  # ── Tencent COS (uncomment to enable) ──────────────────────────────────────
+  # tencentCos:
+  #   secretId: your-secret-id
+  #   secretKey: your-secret-key
+  #   bucket: your-bucket-1234567890
+  #   region: ap-guangzhou
+
+  # ── Qiniu Cloud (uncomment to enable) ──────────────────────────────────────
+  # qiniu:
+  #   accessKey: your-access-key
+  #   secretKey: your-secret-key
+  #   bucket: your-bucket-name
+  #   region: z0    # z0=East China z1=North China z2=South China na0=North America as0=SE Asia
+
+  # ── AWS S3 / MinIO (uncomment to enable) ───────────────────────────────────
+  # awsS3:
+  #   accessKeyId: your-access-key-id
+  #   secretAccessKey: your-secret-access-key
+  #   bucket: your-bucket-name
+  #   region: us-east-1
+  #   endpoint: ""                # optional custom endpoint (e.g. for MinIO)
+
+  # ── Azure Blob Storage (uncomment to enable) ───────────────────────────────
+  # azureBlob:
+  #   accountName: your-account-name
+  #   accountKey: your-account-key
+  #   containerName: your-container-name
+  #   endpoint: ""                # optional custom endpoint
+
+  # ── ModStart (uncomment to enable) ─────────────────────────────────────────
+  # modstart:
+  #   baseUrl: "https://your-modstart-site.com"   # ModStart 站点基础 URL
+  #   apiMemberSecret: "your-api-member-secret"   # 对应 env.API_MEMBER_SECRET
+
+# ─── Proxy ────────────────────────────────────────────────────────────────────
+# Named proxy server entries. Reference a proxy by its 'name' in modelProviders.proxyName.
+# proxy:
+#   - name: local
+#     # type: http | socks5
+#     type: http
+#     host: 127.0.0.1
+#     port: "7890"
+#     username: user       # optional
+#     password: pass       # optional
+
+# ─── Model Providers ──────────────────────────────────────────────────────────
+# Each provider defines a driver (apiBase/apiKey) and exposes a list of models.
+# Reference models throughout the config as 'providerName|modelName'.
+# Add your own provider(s) below — no built-in providers are pre-configured.
+modelProviders: []
+
+# ── Example providers (uncomment to enable) ─────────────────────────────
+#
+# ── Custom / OpenAI-compatible endpoint ─────────────────────────────────
+# - name: custom1
+#   provider: custom
+#   format: openai
+#   apiBase: "https://api.openai.com/v1"
+#   apiKey: your-openai-api-key
+#   isDefault: true
+#   models:
+#     - name: gpt-4o
+#     - name: gpt-3.5-turbo
+#
+# ── Official OpenAI ─────────────────────────────────────────────────────
+# - name: openai
+#   provider: openai
+#   apiKey: sk-...
+#   models:
+#     - name: gpt-4o
+#
+# ── Google Gemini ───────────────────────────────────────────────────────
+# - name: gemini
+#   provider: gemini
+#   apiKey: your-gemini-api-key
+#   models:
+#     - name: gemini-2.0-flash
+#
+# ── Anthropic Claude ────────────────────────────────────────────────────
+# - name: claude
+#   provider: claude
+#   apiKey: sk-ant-...
+#   models:
+#     - name: claude-3-5-sonnet-20241022
+#
+# ── Ollama (local) ──────────────────────────────────────────────────────
+# - name: ollama
+#   provider: custom
+#   format: ollama
+#   apiBase: "http://localhost:11434"
+#   apiKey: ""
+#   models:
+#     - name: llama3
+#
+# ── DeepSeek ────────────────────────────────────────────────────────────
+# - name: deepseek
+#   provider: deepseek
+#   apiKey: your-deepseek-api-key
+#   models:
+#     - name: deepseek-chat
+
+# ─── Embedding Model ──────────────────────────────────────────────────────────
+# Controls the vector embedding backend for knowledge memory / semantic search.
+embeddingModel:
+  # 'default' = built-in sqlite-vec (no external model or API key needed)
+  # 'openai'  = OpenAI-compatible embedding API (requires apiKey)
+  type: default
+  # ── OpenAI-compatible embedding (uncomment to switch) ──────────────────────
+  # type: openai
+  # model: text-embedding-3-small
+  # apiKey: your-embedding-api-key
+  # apiBase: "https://api.openai.com/v1"
+
+# ─── Named Model Configurations ───────────────────────────────────────────────
+# Maps logical model aliases to concrete 'providerName|modelName' references.
+# Add multiple 'name' items under the same key to form an automatic fallback chain:
+# the next entry is tried only when the previous one fails.
+# The 'default' key is auto-derived from the first available provider when omitted.
+# model:
+#   default:
+#     - name: "custom1|gpt-4o"
+#   router:
+#     - name: "custom1|gpt-4o"
+#   # Fallback chain example:
+#   # fallback:
+#   #   - name: "custom1|gpt-4o"
+#   #   - name: "custom1|gpt-3.5-turbo"
+
+# ─── Runtime Environments ─────────────────────────────────────────────────────
+# Python interpreter configuration. If path is empty or not set, the system
+# default python3 will be used automatically.
+# runtime:
+#   python:
+#     path: /usr/bin/python3
+
+# ─── Agent Tasks ──────────────────────────────────────────────────────────────
+agent:
+  # Maximum number of agent tasks that can run simultaneously.
+  maxConcurrent: 3
+  # Custom directory for agent task data. Defaults to '<dataPath>/agentTasks/'
+  # taskPath: /custom/agent/tasks/
+
+# ─── Environment Variables ────────────────────────────────────────────────────
+# Extra environment variables injected into shell / python subprocesses.
+# Values may reference existing env vars using $VAR or ${VAR} syntax.
+# env:
+#   PATH: "/opt/homebrew/bin:$PATH"
+#   PYTHONPATH: "/custom/python/lib"
+
+# ─── Error Reporting ──────────────────────────────────────────────────────────
+# Optional URL to receive system-level error reports via GET request.
+# Payload is sent as URL-encoded JSON: GET <reportUrl>?data=<json>
+# reportUrl: "https://your-monitoring-endpoint/report"
+
+
+# ─── Claw Module ──────────────────────────────────────────────────────────────
+claw:
+  # Additional skill directories (appended to the default '<dataPath>/skills/').
+  # Each entry can be an absolute path or a path relative to the project root.
+  skillDirs:
+    - /path/to/skills
+

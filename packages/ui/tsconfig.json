@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "preserve",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noEmit": true,
+    "ignoreDeprecations": "5.0",
+    "baseUrl": ".",
+    "paths": {
+      "@/claw/*": ["../ui-claw/src/*"],
+      "@/media/*": ["../ui-media/src/*"],
+      "@/novel/*": ["../ui-novel/src/*"],
+      "@/ops/*": ["../ui-ops/src/*"],
+      "@/work/*": ["../ui-work/src/*"],
+      "@/write/*": ["../ui-write/src/*"],
+      "@/bucket/*": ["../ui-bucket/src/*"],
+      "@/todo/*": ["../ui-todo/src/*"],
+      "@/house/*": ["../ui-house/src/*"],
+      "@/stock/*": ["../ui-stock/src/*"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "src/**/*.vue"],
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

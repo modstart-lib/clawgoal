@@ -1,0 +1,29 @@
+# Bun 配置文件
+# 文档: https://bun.sh/docs/runtime/bunfig
+
+[install]
+# 使用 pnpm 的依赖管理
+registry = "https://registry.npmmirror.com/"
+auto = "auto"
+
+[install.scopes]
+"@clawgoal" = { registry = "https://registry.npmmirror.com/" }
+
+[run]
+# 设置 Shell 环境
+shell = "system"
+
+[build]
+# 编译配置
+minify = true
+sourcemap = "external"
+target = "bun"
+
+[loader]
+".yaml" = "text"
+".png" = "base64"
+
+[test]
+# 测试配置
+timeout = 30000
+
