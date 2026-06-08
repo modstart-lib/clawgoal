@@ -210,6 +210,20 @@ jobs:
             pnpm --filter @clawgoal/backend build $target
           }
 
+      - name: Upload Server Artifact (Linux/macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        uses: actions/upload-artifact@v6
+        with:
+          name: clawgoal-server-${{ matrix.target }}
+          path: code/packages/backend/dist/${{ matrix.bin }}
+
+      - name: Upload Server Artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v6
+        with:
+          name: clawgoal-server-${{ matrix.target }}
+          path: code/packages/backend/dist/${{ matrix.bin }}
+
       - name: Rename Server Binary (Linux/macOS)
         if: runner.os == 'Linux' || runner.os == 'macOS'
         run: |
