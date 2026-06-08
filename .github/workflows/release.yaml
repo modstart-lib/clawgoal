@@ -381,7 +381,7 @@ jobs:
           $rn = Get-Random -Minimum 10000 -Maximum 99999
           "BUILD_ID=${plat}-${ts}-${rn}" >> $env:GITHUB_ENV
 
-      - name: Build frontend & backend-claw
+      - name: 'Build frontend & backend-claw'
         working-directory: code
         env:
           NODE_OPTIONS: --max-old-space-size=4096
@@ -439,7 +439,7 @@ jobs:
           name: clawgoal-server-${{ matrix.name }}
           path: code/packages/backend/dist/
 
-      - name: Debug: list downloaded server binary
+      - name: 'Debug: list downloaded server binary'
         if: runner.os != 'Windows'
         working-directory: code
         run: ls -lh packages/backend/dist/clawgoal-* || echo "No server binary found"
@@ -458,7 +458,7 @@ jobs:
           mkdir -p client/backend
           cp packages/backend/dist/clawgoal-mac-x64 client/backend/clawgoal-mac-x64
 
-      - name: Build & Package Electron App
+      - name: 'Build & Package Electron App'
         working-directory: code/client
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -467,7 +467,7 @@ jobs:
           ELECTRON_MIRROR: ${{ secrets.ELECTRON_MIRROR }}
         run: node scripts/build.cjs --full "../packages/backend/dist/${{ matrix.server_bin }}"
 
-      - name: Debug: list build output
+      - name: 'Debug: list build output'
         if: runner.os != 'Windows'
         working-directory: code/client
         run: |
