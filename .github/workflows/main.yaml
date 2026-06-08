@@ -273,22 +273,32 @@ jobs:
         include:
           - name: linux-x64
             os: ubuntu-latest
+            arch: x64
             server_target: linux-x64
             server_bin: clawgoal-linux-amd64
-          - name: mac-arm64
-            os: macos-latest
-            server_target: mac-arm64
-            server_bin: clawgoal-mac-arm64
           - name: linux-arm64
-            os: ubuntu-24.04-arm
+            os: ubuntu-latest
+            arch: arm64
             server_target: linux-arm64
             server_bin: clawgoal-linux-arm64
+          - name: mac-x64
+            os: macos-latest
+            arch: x64
+            server_target: mac-x64
+            server_bin: clawgoal-mac-x64
+          - name: mac-arm64
+            os: macos-latest
+            arch: arm64
+            server_target: mac-arm64
+            server_bin: clawgoal-mac-arm64
           - name: win-x64
             os: windows-latest
+            arch: x64
             server_target: win-x64
             server_bin: clawgoal-win-x64.exe
           - name: win-arm64
             os: windows-11-arm
+            arch: arm64
             server_target: win-arm64
             server_bin: clawgoal-win-arm64.exe
 
@@ -450,27 +460,13 @@ jobs:
       - name: Download Server Binary
         uses: actions/download-artifact@v6
         with:
-          name: clawgoal-server-${{ matrix.name }}
+          name: clawgoal-server-${{ matrix.server_target }}
           path: code/packages/backend/dist/
 
       - name: 'Debug: list downloaded server binary'
         if: runner.os != 'Windows'
         working-directory: code
         run: ls -lh packages/backend/dist/clawgoal-* || echo "No server binary found"
-
-      - name: Download Server Binary (macOS x64, for dual-arch DMG)
-        if: runner.os == 'macOS'
-        uses: actions/download-artifact@v6
-        with:
-          name: clawgoal-server-mac-x64
-          path: code/packages/backend/dist/
-
-      - name: Copy x64 Server Binary to App Resources (macOS)
-        if: runner.os == 'macOS'
-        working-directory: code
-        run: |
-          mkdir -p client/backend
-          cp packages/backend/dist/clawgoal-mac-x64 client/backend/clawgoal-mac-x64
 
       - name: 'Build & Package Electron App'
         working-directory: code/client
@@ -479,7 +475,7 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           ELECTRON_MIRROR: ${{ secrets.ELECTRON_MIRROR }}
-        run: node scripts/build.cjs --full "../packages/backend/dist/${{ matrix.server_bin }}"
+        run: node scripts/build.cjs --full --arch ${{ matrix.arch }} "../packages/backend/dist/${{ matrix.server_bin }}"
 
       - name: 'Debug: list build output'
         if: runner.os != 'Windows'

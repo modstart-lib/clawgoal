@@ -8,12 +8,14 @@
  * Options:
  *   --dir          Build unpacked app only (default)
  *   --full         Build and package in one step (installer/portable/dmg)
+ *   --arch <arch>  Target architecture: x64 or arm64 (default: host arch)
  *   <binary-path>  Path to backend server binary
  *
  * Examples:
- *   node client/scripts/build.cjs                           # auto-detect + --dir
- *   node client/scripts/build.cjs --full                    # auto-detect + full build
- *   node client/scripts/build.cjs /path/to/clawgoal-linux-amd64  # specific binary + --dir
+ *   node client/scripts/build.cjs                              # auto-detect + --dir
+ *   node client/scripts/build.cjs --full                       # auto-detect + full build
+ *   node client/scripts/build.cjs --full --arch arm64 ...      # cross-compile for arm64
+ *   node client/scripts/build.cjs /path/to/clawgoal-linux-amd64  # specific binary
  */
 const { execSync } = require('child_process')
 const fs = require('fs')
@@ -29,6 +31,8 @@ const BACKEND_BIN = path.join(BACKEND_DIR, BINARY_NAME)
 // ── Parse flags ────────────────────────────────────────────────────────────
 const ARGS = process.argv.slice(2)
 const BUILD_FULL = ARGS.includes('--full')
+const ARCH_IDX = ARGS.indexOf('--arch')
+const ARCH_ARG = ARCH_IDX !== -1 && ARCH_IDX + 1 < ARGS.length ? ARGS[ARCH_IDX + 1] : ''
 const BINARY_ARG = ARGS.find(a => !a.startsWith('--'))
 
 // ── Determine binary source ────────────────────────────────────────────────
@@ -110,7 +114,9 @@ try {
   const versionArgs = version ? ` --config.extraMetadata.version=${version}` : ''
   const configFile = 'electron-builder.json5'
   const modeFlag = BUILD_FULL ? '' : '--dir'
-  execSync(`npx electron-builder --config ${configFile} ${modeFlag}${versionArgs}`, { cwd: ROOT, stdio: 'inherit', env: buildEnv })
+  const archFlag = ARCH_ARG ? ` --${ARCH_ARG}` : ''
+  console.log(`[build] Target arch: ${ARCH_ARG || 'host (' + process.arch + ')'}`)
+  execSync(`npx electron-builder --config ${configFile}${archFlag} ${modeFlag}${versionArgs}`, { cwd: ROOT, stdio: 'inherit', env: buildEnv })
 
   console.log('')
   console.log(`[build] ✅ Electron app built successfully`)
