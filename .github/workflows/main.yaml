@@ -539,7 +539,7 @@ jobs:
             code/client/build/*.exe:apps/{random}.bin:{name}.exe
 
   # ── Snapshot Release ─────────────────────────────────────────────────────────
-  snapshot-release:
+  vsnapshot-release:
     name: Snapshot Release
     needs: [build-server, build-app]
     if: github.ref == 'refs/heads/main' && success()
@@ -555,8 +555,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Ensure snapshot release exists (create if not)
-          gh release create snapshot \
+          # Ensure vsnapshot release exists (create if not)
+          gh release create vsnapshot \
             --title "Snapshot" \
             --notes "Latest build from main branch" \
             --prerelease \
@@ -570,7 +570,7 @@ jobs:
             echo "Staged: $base → $clean"
           done
           # Upload all cleaned files (overwrite existing)
-          gh release upload snapshot "$tmpdir"/* --clobber
+          gh release upload vsnapshot "$tmpdir"/* --clobber
           rm -rf "$tmpdir"
 
   # ── Notify ────────────────────────────────────────────────────────────────────
