@@ -44,7 +44,10 @@
   "linux": {
     "icon": "appicon.png",
     "category": "Utility",
-    "target": ["AppImage", "deb"],
+    "target": [
+      { "target": "AppImage", "arch": ["x64", "arm64"] },
+      { "target": "deb", "arch": ["x64", "arm64"] }
+    ],
     "artifactName": "${productName}-App-linux-${arch}-${version}.${ext}"
   }
 }

@@ -110,9 +110,7 @@ try {
   const versionArgs = version ? ` --config.extraMetadata.version=${version}` : ''
   const configFile = 'electron-builder.json5'
   const modeFlag = BUILD_FULL ? '' : '--dir'
-  // ARM64 Linux: fpm (deb builder) is x86-only, skip deb target
-  const archFix = (process.platform === 'linux' && process.arch === 'arm64') ? ' --config.linux.target=AppImage' : ''
-  execSync(`npx electron-builder --config ${configFile} ${modeFlag}${versionArgs}${archFix}`, { cwd: ROOT, stdio: 'inherit', env: buildEnv })
+  execSync(`npx electron-builder --config ${configFile} ${modeFlag}${versionArgs}`, { cwd: ROOT, stdio: 'inherit', env: buildEnv })
 
   console.log('')
   console.log(`[build] ✅ Electron app built successfully`)
