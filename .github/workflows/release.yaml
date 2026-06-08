@@ -227,8 +227,8 @@ jobs:
           $file = "code\packages\backend\dist\${{ matrix.bin }}"
           $base = [System.IO.Path]::GetFileNameWithoutExtension($file)
           $ext  = [System.IO.Path]::GetExtension($file)
-          $dir  = [System.IO.Path]::GetDirectoryName($file)
-          Rename-Item $file (Join-Path $dir "$base-${TAG}$ext")
+          # -NewName only accepts a filename, not a full path
+          Rename-Item -LiteralPath $file -NewName "$base-${TAG}$ext"
 
       - name: Release Server Binary
         uses: softprops/action-gh-release@v2.3.2
