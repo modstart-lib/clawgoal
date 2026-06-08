@@ -33,7 +33,11 @@ const ARGS = process.argv.slice(2)
 const BUILD_FULL = ARGS.includes('--full')
 const ARCH_IDX = ARGS.indexOf('--arch')
 const ARCH_ARG = ARCH_IDX !== -1 && ARCH_IDX + 1 < ARGS.length ? ARGS[ARCH_IDX + 1] : ''
-const BINARY_ARG = ARGS.find(a => !a.startsWith('--'))
+// Strip --arch and its value so BINARY_ARG doesn't pick up the arch value
+const ARGS_CLEAN = ARCH_IDX !== -1
+  ? [...ARGS.slice(0, ARCH_IDX), ...ARGS.slice(ARCH_IDX + 2)]
+  : ARGS
+const BINARY_ARG = ARGS_CLEAN.find(a => !a.startsWith('--'))
 
 // ── Determine binary source ────────────────────────────────────────────────
 function findBinarySource() {
