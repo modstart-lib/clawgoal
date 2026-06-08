@@ -544,7 +544,7 @@ jobs:
   vsnapshot-release:
     name: Snapshot Release
     needs: [build-server, build-app]
-    if: github.event_name == 'workflow_dispatch' && success()
+    if: success()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
