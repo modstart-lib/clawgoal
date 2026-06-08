@@ -246,7 +246,7 @@ jobs:
 
       - name: Release Server Binary
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG=${GITHUB_REF#refs/tags/}
           # Create draft release if not exists (idempotent)
@@ -495,6 +495,7 @@ jobs:
         if: runner.os == 'Linux'
         uses: softprops/action-gh-release@v2.3.2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
           fail_on_unmatched_files: false
@@ -502,34 +503,30 @@ jobs:
           files: |
             code/client/build/*.AppImage
             code/client/build/*.deb
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Release App (macOS)
         if: runner.os == 'macOS'
         uses: softprops/action-gh-release@v2.3.2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
           fail_on_unmatched_files: false
           overwrite_files: true
           files: |
             code/client/build/*.dmg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Release App (Windows)
         if: runner.os == 'Windows'
         uses: softprops/action-gh-release@v2.3.2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
           fail_on_unmatched_files: false
           overwrite_files: true
           files: |
             code/client/build/*.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
   # ── Notify ────────────────────────────────────────────────────────────────────
   notify:
