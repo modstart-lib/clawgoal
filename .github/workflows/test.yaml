@@ -211,10 +211,6 @@ jobs:
             os: ubuntu-latest
             server_target: linux-x64
             server_bin: clawgoal-linux-amd64
-          - name: mac-x64
-            os: macos-latest
-            server_target: mac-x64
-            server_bin: clawgoal-mac-x64
           - name: mac-arm64
             os: macos-latest
             server_target: mac-arm64
@@ -359,7 +355,13 @@ jobs:
         if: runner.os != 'Windows'
         env:
           BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
-        run: pnpm --filter @clawgoal/backend build ${{ matrix.server_target }}
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            pnpm --filter @clawgoal/backend build mac-arm64
+            pnpm --filter @clawgoal/backend build mac-x64
+          else
+            pnpm --filter @clawgoal/backend build ${{ matrix.server_target }}
+          fi
 
       - name: Build Server Binary for App (Windows)
         if: runner.os == 'Windows'

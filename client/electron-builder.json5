@@ -31,7 +31,9 @@
   },
   "mac": {
     "icon": "iconfile.icns",
-    "target": ["dmg"],
+    "target": [
+      { "target": "dmg", "arch": ["x64", "arm64"] }
+    ],
     "artifactName": "${productName}-App-mac-${arch}-${version}.${ext}",
     "category": "public.app-category.productivity",
     "hardenedRuntime": true,
