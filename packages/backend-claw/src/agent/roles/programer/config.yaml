@@ -67,8 +67,6 @@ capabilities:
   tools:
     - runtime_list
     - runtime_execute
-    - context_set
-    - asks
   skills:
     - programer-dev-init
   mcps: []

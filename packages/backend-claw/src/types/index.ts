@@ -85,9 +85,9 @@ export interface ModelBehaviorConfig {
 export interface Capabilities {
   /** Allowed tool names (explicit list only, "*" is not permitted) */
   tools: ToolPermission[]
-  /** Allowed skill names (explicit list only, "*" is not permitted) */
-  skills: ToolPermission[]
-  /** Enabled MCP server names; maps to claw_mcp.name (explicit list only, "*" is not permitted) */
+  /** Allowed skill names; "*" resolves to all loaded skills */
+  skills: string[]
+  /** Enabled MCP server names; maps to claw_mcp.name; "*" resolves to all connected MCP servers */
   mcps: string[]
 }
 

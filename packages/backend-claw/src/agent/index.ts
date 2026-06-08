@@ -20,6 +20,8 @@ import { generateSystemAvatar, resolveAvatar } from '../assets/avatar.js'
 import { BUNDLED_ROLES } from '../generated/bundledRoles.js'
 import { createLogger } from '../kernel/logger.js'
 import { AGENT_DEFAULT_TOOLS } from '../tools/index.js'
+import { skillRegistry } from '../skills/index.js'
+import { mcpManager } from '../mcp/manager.js'
 import { clawDb as agentDb } from '../storage/store/index.js'
 import { clawEventBus } from '../kernel/eventBus.js'
 import type {
@@ -147,23 +149,17 @@ function parseRoleConfig(raw: unknown, roleName: string): RoleConfig {
         const rawSkills = Array.isArray(capsRaw['skills'])
           ? (capsRaw['skills'] as string[])
           : []
-        if (rawSkills.includes('*')) {
-          logger.warn(
-            `[role=${roleName}] capabilities.skills 中包含 "*"，不允许使用通配符，请明确列出所需技能，已自动忽略。`
-          )
-        }
-        return rawSkills.filter((t) => t !== '*')
+        return rawSkills.flatMap((t) =>
+          t === '*' ? skillRegistry.list() : t
+        )
       })(),
       mcps: (() => {
         const rawMcps = Array.isArray(capsRaw['mcps'])
           ? (capsRaw['mcps'] as string[])
           : []
-        if (rawMcps.includes('*')) {
-          logger.warn(
-            `[role=${roleName}] capabilities.mcps 中包含 "*"，不允许使用通配符，请明确列出所需 MCP 服务，已自动忽略。`
-          )
-        }
-        return rawMcps.filter((t) => t !== '*')
+        return rawMcps.flatMap((t) =>
+          t === '*' ? mcpManager.getAllConnectedMcpNames() : t
+        )
       })(),
     },
     permissions: {
