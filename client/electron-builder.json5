@@ -32,7 +32,7 @@
   "mac": {
     "icon": "iconfile.icns",
     "target": [
-      { "target": "dmg", "arch": ["x64", "arm64"] }
+      "dmg"
     ],
     "artifactName": "${productName}-App-mac-${arch}-${version}.${ext}",
     "category": "public.app-category.productivity",
@@ -45,8 +45,8 @@
     "icon": "appicon.png",
     "category": "Utility",
     "target": [
-      { "target": "AppImage", "arch": ["x64", "arm64"] },
-      { "target": "deb", "arch": ["x64", "arm64"] }
+      "AppImage",
+      "deb"
     ],
     "artifactName": "${productName}-App-linux-${arch}-${version}.${ext}"
   }
