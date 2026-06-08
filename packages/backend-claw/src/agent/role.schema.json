@@ -1,0 +1,486 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "role.schema.json",
+  "title": "RoleConfig",
+  "description": "角色配置文件 (config.yaml) 的 JSON Schema 定义。\n内置角色位于 src/claw/agent/roles/{roleName}/config.yaml；\n用户自定义角色位于 data/agentRoles/{roleName}/config.yaml（优先级更高）。",
+  "type": "object",
+  "required": ["name", "title", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "角色的唯一英文标识符，必须与所在目录名保持一致。",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "examples": ["supervisor", "programer", "writer"]
+    },
+    "title": {
+      "type": "string",
+      "description": "角色的人类可读显示名称（用于 UI 展示）。",
+      "examples": ["监督者", "程序员", "写作助手"]
+    },
+    "description": {
+      "type": "string",
+      "description": "角色的简短功能描述，用于 UI 展示和 Agent 列表。"
+    },
+    "avatar": {
+      "type": "string",
+      "description": "角色默认头像。支持两种格式：\n1. URL 字符串（外部图片链接或 data URI）\n2. `system:xxx` — 使用内置系统头像，如 `system:supervisor`、`system:programmer`、`system:code-reviewer`。\n创建 Agent 时若未指定头像，则自动使用此默认值并解析 system: 前缀。",
+      "examples": ["system:supervisor", "system:programmer", "system:code-reviewer", "https://example.com/avatar.png"]
+    },
+    "model": {
+      "type": "object",
+      "description": "Model 行为参数（全局默认值，可被 models 槽位覆盖）。",
+      "additionalProperties": false,
+      "properties": {
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "生成温度，控制随机性。默认 0.3。"
+        },
+        "maxTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "最大输出 token 数量。默认 4096。"
+        },
+        "maxToolRounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64,
+          "description": "每条用户消息最多允许的工具调用轮次，防止无限循环。默认 20。复杂编码/研究类任务可适当调高，简单问答 Agent 可调低。"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "角色的能力权限配置。",
+      "additionalProperties": false,
+      "required": ["tools", "skills"],
+      "properties": {
+        "tools": {
+          "type": "array",
+          "description": "允许使用的工具名称列表。使用 [\"*\"] 表示允许所有工具。\n支持细粒度 action 控制：使用 \"tool.action\" 格式（如 \"web.search\"、\"web.fetch\"）可将工具限制为特定 action；\"tool.*\" 等同于 \"tool\"（允许全部 action）。多条 \"web.search\" + \"web.fetch\" 格式会取并集。\n大模型只能看到被授权的 action，未授权的 action 描述和参数不会暴露，调用时也会被拦截。\n注意：memory / memory_global 由 permissions 字段统一控制，不可在此处配置。",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["*"], ["file", "web"], ["web.search", "web.fetch", "file.read"]]
+        },
+        "skills": {
+          "type": "array",
+          "description": "允许使用的技能名称列表。使用 [\"*\"] 表示允许所有技能；空数组表示不允许使用任何技能。",
+          "items": {
+            "type": "string",
+            "examples": ["*", "seo-writer"]
+          },
+          "examples": [["*"], ["seo-writer"], []]
+        },
+        "mcps": {
+          "type": "array",
+          "description": "允许使用的 MCP 服务名称列表。使用 [\"*\"] 表示允许所有 MCP 服务；空数组表示不允许使用任何 MCP 服务。",
+          "items": {
+            "type": "string",
+            "examples": ["*"]
+          },
+          "examples": [["*"], []]
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "description": "角色的权限配置，控制记忆访问范围。",
+      "additionalProperties": false,
+      "properties": {
+        "globalMemoryRead": {
+          "type": "boolean",
+          "description": "是否允许读取全局（跨 Agent）共享记忆（memory_global get）。",
+          "default": false
+        },
+        "globalMemoryUpdate": {
+          "type": "boolean",
+          "description": "是否允许更新全局（跨 Agent）共享记忆（memory_global set）。",
+          "default": false
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "description": "命名模型槽位配置。标准槽位名：default、router、coder、creative。\n解析优先级：Agent 实例覆盖 > 此处默认值 > 系统全局默认模型。",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "简写格式：\"providerName|modelName\"，例如 \"dashscope|qwen-plus\"。"
+          },
+          {
+            "$ref": "#/$defs/ModelRef"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "default": {
+            "name": "default",
+            "temperature": 0.3,
+            "maxTokens": 4096,
+            "systemPrompt": "You are a helpful assistant."
+          },
+          "router": {
+            "name": "default",
+            "temperature": 0.1,
+            "maxTokens": 512
+          }
+        }
+      ]
+    },
+    "soul": {
+      "type": "string",
+      "description": "角色的初始个性/风格定义（Soul）。\n当 Agent 实例在 paramDb 中尚无 AgentSoul 记录时，自动作为初始 Soul 注入系统提示。\n使用 Markdown 格式，简短描述性格特质、沟通风格和行为准则。",
+      "examples": [
+        "你直接务实，追求极致效率。处事果断，高标准推动团队完成目标。",
+        "你严谨细致，对代码质量有洁癖，但反馈始终建设性，助人成长。"
+      ]
+    },
+    "param": {
+      "type": "array",
+      "description": "角色自定义参数字段定义。用户可在 Agent 设置页面填写，通过 {{agent.param.<name>}} 在 systemPrompt 中引用。",
+      "items": {
+        "type": "object",
+        "required": ["name", "title", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "字段唯一标识（英文），在 prompt 中通过 {{agent.param.<name>}} 引用。",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "title": {
+            "type": "string",
+            "description": "字段中文显示名称，用于 UI 展示。"
+          },
+          "description": {
+            "type": "string",
+            "description": "字段说明，展示在输入框下方，帮助用户理解参数用途。"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["text", "select", "textarea"],
+            "description": "字段类型：text（单行文本）、select（下拉选择）、textarea（多行文本）。"
+          },
+          "defaultValue": {
+            "type": "string",
+            "description": "字段默认值。"
+          },
+          "option": {
+            "type": "string",
+            "description": "select 类型的选项，逗号分隔，例如 \"选项A,选项B,选项C\"。"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "创建 Agent 时是否要求用户必须填写此参数。",
+            "default": false
+          }
+        }
+      }
+    },
+    "chats": {
+      "type": "object",
+      "description": "聊天界面配置（如工具栏快捷操作）。",
+      "additionalProperties": false,
+      "properties": {
+        "toolActions": {
+          "type": "array",
+          "description": "输入框工具栏自定义操作按钮列表。",
+          "items": {
+            "$ref": "#/$defs/ToolAction"
+          }
+        }
+      }
+    },
+    "intentRouterSlot": {
+      "type": "string",
+      "description": "Optional model slot name used for intent classification across named pipelines. Defaults to 'intent_router'. Omit when there is only one pipeline or when no intent routing is needed.",
+      "examples": ["intent_router"]
+    },
+    "agents": {
+      "type": "object",
+      "description": "Named pipeline definitions. Each key becomes a valid routing label for the intent router. When only one pipeline is defined and intentRouterSlot is absent, the intent router step is skipped and that pipeline always runs.",
+      "additionalProperties": {
+        "$ref": "#/$defs/AgentPipelineDefinition"
+      },
+      "examples": [
+        {
+          "programer": {
+            "description": "Build, fix, refactor, debug, or review code",
+            "graph": {
+              "entryPoint": "studio_resolver",
+              "nodes": [],
+              "edges": []
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "AgentPipelineDefinition": {
+      "type": "object",
+      "description": "A single named pipeline definition. Each pipeline is an independent LangGraph that runs when the intent matches.",
+      "required": ["graph"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this pipeline handles. Used as hint for the intent router."
+        },
+        "graph": {
+          "type": "object",
+          "description": "LangGraph graph definition with nodes and edges.",
+          "required": ["entryPoint", "nodes", "edges"],
+          "additionalProperties": false,
+          "properties": {
+            "entryPoint": {
+              "type": "string",
+              "description": "Name of the first node to execute."
+            },
+            "nodes": {
+              "type": "array",
+              "description": "All node definitions in this graph.",
+              "items": { "$ref": "#/$defs/AgentGraphNode" }
+            },
+            "edges": {
+              "type": "array",
+              "description": "All edge connections in this graph.",
+              "items": { "$ref": "#/$defs/AgentGraphEdge" }
+            }
+          }
+        }
+      }
+    },
+    "ToolActionTextField": {
+      "type": "object",
+      "description": "纯文本输入字段。",
+      "required": ["type", "name", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["text"] },
+        "name": { "type": "string", "description": "字段标识符（用于模板占位符 {{name}}）。" },
+        "title": { "type": "string", "description": "字段显示标题。" },
+        "defaultValue": { "type": "string", "description": "默认值。" },
+        "required": { "type": "boolean", "description": "是否必填。", "default": false }
+      }
+    },
+    "ToolActionRadioField": {
+      "type": "object",
+      "description": "单选字段。",
+      "required": ["type", "name", "title", "options"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["radio"] },
+        "name": { "type": "string", "description": "字段标识符（用于模板占位符 {{name}}）。" },
+        "title": { "type": "string", "description": "字段显示标题。" },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "选项列表。"
+        },
+        "defaultValue": { "type": "string", "description": "默认选中值。" },
+        "required": { "type": "boolean", "description": "是否必填。", "default": false }
+      }
+    },
+    "ToolActionTextareaField": {
+      "type": "object",
+      "description": "多行文本输入字段。",
+      "required": ["type", "name", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["textarea"] },
+        "name": { "type": "string", "description": "字段标识符（用于模板占位符 {{name}}）。" },
+        "title": { "type": "string", "description": "字段显示标题。" },
+        "defaultValue": { "type": "string", "description": "默认值。" },
+        "required": { "type": "boolean", "description": "是否必填。", "default": false },
+        "minRows": { "type": "integer", "description": "最少显示行数，默认 3。", "default": 3 },
+        "maxRows": { "type": "integer", "description": "最多显示行数，默认 8。", "default": 8 }
+      }
+    },
+    "ToolActionFormConfig": {
+      "type": "object",
+      "description": "表单型工具操作的配置。",
+      "required": ["fields", "template"],
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "type": "array",
+          "description": "表单字段列表。",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/ToolActionTextField" },
+              { "$ref": "#/$defs/ToolActionRadioField" },
+              { "$ref": "#/$defs/ToolActionTextareaField" }
+            ]
+          }
+        },
+        "template": {
+          "type": "string",
+          "description": "发送消息模板，支持 {{fieldName}} 占位符替换。"
+        }
+      }
+    },
+    "ToolAction": {
+      "type": "object",
+      "description": "工具栏自定义操作，目前仅支持 type=form（弹出表单后发送渲染消息）。",
+      "required": ["type", "title", "config"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["form"],
+          "description": "操作类型，当前仅支持 form。"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Lucide 图标名称（如 FileText、Search、Pencil）。"
+        },
+        "title": {
+          "type": "string",
+          "description": "按钮显示标题。"
+        },
+        "config": {
+          "$ref": "#/$defs/ToolActionFormConfig"
+        }
+      }
+    },
+    "ModelRef": {
+      "type": "object",
+      "description": "模型引用对象，指向具体的 provider + model，并携带独立的推理参数和系统提示词。",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "模型标识，支持以下格式：\n- 字符串: \"providerName|modelName\"，例如 \"dashscope|qwen-plus\"\n- 字符串数组: 按顺序依次尝试，前一个失败则自动切换到下一个（fallback 链）\n  例如: [\"primary|gpt-4o\", \"fallback|gpt-3.5-turbo\"]",
+          "oneOf": [
+            {
+              "type": "string",
+              "examples": ["default", "dashscope|qwen-plus", "openai|gpt-4o"]
+            },
+            {
+              "type": "array",
+              "description": "按序 fallback 链：依次尝试每个模型，前一个失败则切换到下一个。",
+              "items": {
+                "type": "string",
+                "pattern": "^[^|]+\\|[^|]+$"
+              },
+              "minItems": 1,
+              "examples": [
+                ["default|gpt-4o", "fallback|gpt-3.5-turbo"],
+                ["primary|qwen-plus", "secondary|qwen-turbo"]
+              ]
+            }
+          ]
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "此槽位的推理温度，覆盖 model.temperature 全局值。"
+        },
+        "maxTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "此槽位的最大输出 token 数，覆盖 model.maxTokens 全局值。"
+        },
+        "systemPrompt": {
+          "type": "string",
+          "description": "此槽位专用的系统提示词，独立于其他槽位。"
+        }
+      }
+    },
+    "AgentGraphNode": {
+      "type": "object",
+      "description": "智能体图中的单个节点定义。",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "节点唯一标识符，在该图中必须唯一。"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["model", "tool", "router", "parallel", "subgraph"],
+          "description": "节点类型：\n- model: 调用模型（可带工具）\n- tool: 直接执行一个注册工具（不经过 Model）\n- router: 轻量 Model 调用，返回路由键字符串\n- parallel: 并发执行多个子节点\n- subgraph: 嵌入另一个角色的 agent.graph 子图"
+        },
+        "modelSlot": {
+          "type": "string",
+          "description": "该节点使用的模型槽位名称（对应 models 配置中的 key）。model/router 节点默认为 default/router。"
+        },
+        "useTools": {
+          "type": "boolean",
+          "description": "是否允许该节点调用工具。model 节点默认 true，router 节点默认 false。"
+        },
+        "systemPromptExtra": {
+          "type": "string",
+          "description": "追加到该节点系统提示词末尾的额外指令，不影响其他节点。"
+        },
+        "toolName": {
+          "type": "string",
+          "description": "type=tool 时，要直接执行的注册工具名称。"
+        },
+        "input": {
+          "type": "object",
+          "description": "传递给工具或 Model 的静态输入参数（与 context 合并）。",
+          "additionalProperties": true
+        },
+        "parallel": {
+          "type": "array",
+          "description": "type=parallel 时，并发执行的子节点名称列表。",
+          "items": { "type": "string" }
+        },
+        "subgraphRole": {
+          "type": "string",
+          "description": "type=subgraph 时，被引用的角色名称（该角色必须有 agent.graph 配置）。"
+        }
+      }
+    },
+    "AgentGraphEdgeBranch": {
+      "type": "object",
+      "description": "条件边的分支。若 equals 与路由节点返回值匹配，则跳转到 next 节点。无 equals 的分支为默认分支。",
+      "required": ["next"],
+      "additionalProperties": false,
+      "properties": {
+        "equals": {
+          "type": "string",
+          "description": "与路由节点输出进行匹配的字符串值（不区分大小写）。缺省表示默认/兜底分支。"
+        },
+        "next": {
+          "type": "string",
+          "description": "匹配成功时跳转的目标节点名称。使用 '__end__' 表示结束图执行。"
+        }
+      }
+    },
+    "AgentGraphEdge": {
+      "type": "object",
+      "description": "图中两个节点之间的连接边。支持简单直连和条件分支两种模式。",
+      "required": ["from"],
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "源节点名称。"
+        },
+        "to": {
+          "type": "string",
+          "description": "目标节点名称（简单直连边）。与 condition/branches 互斥。"
+        },
+        "condition": {
+          "type": "string",
+          "description": "用于路由的节点名称；该节点的字符串返回值将与 branches 进行匹配。"
+        },
+        "branches": {
+          "type": "array",
+          "description": "条件分支列表，按顺序匹配；无 equals 的分支为默认分支。",
+          "items": { "$ref": "#/$defs/AgentGraphEdgeBranch" }
+        }
+      }
+    }
+  }
+}

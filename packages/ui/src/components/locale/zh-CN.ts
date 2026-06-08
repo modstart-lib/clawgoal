@@ -1,0 +1,15 @@
+export default {
+  'nav.collapseMenu': '收起菜单',
+  'nav.expandMenu': '展开菜单',
+  'listerTop.total': '共 {n} 条',
+  'listerTop.refresh': '刷新',
+  'listerTop.filter': '筛选',
+  'mainLayout.loggedIn': '已登录',
+  'mainLayout.clickToLogin': '点击登录',
+  'mainLayout.feedback': '意见反馈',
+  'mainLayout.setting': '设置',
+  'mainLayout.wsConnected': '已连接',
+  'mainLayout.wsConnecting': '连接中',
+  'mainLayout.wsDisconnected': '已断开',
+  'mainLayout.communityEdition': '社区版',
+} as const

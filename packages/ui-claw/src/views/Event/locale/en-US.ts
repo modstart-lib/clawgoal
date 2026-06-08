@@ -1,0 +1,16 @@
+export default {
+  'claw.event.edit': 'Edit',
+  'claw.event.share': 'Share',
+  'claw.event.shareLink': 'Share Link',
+  'claw.event.unshare': 'Unshare',
+  'claw.event.delete': 'Delete',
+  'claw.event.dateLabel': 'Date',
+  'claw.event.copyIdHint': 'Click to copy ID',
+  'claw.event.createLabel': 'Created:',
+  'claw.event.searchPlaceholder': 'Search events...',
+  'claw.event.typeFilterTitle': 'Type',
+  'claw.event.shareFailed': 'Share failed',
+  'claw.event.unshareFailed': 'Operation failed',
+  'claw.event.unshareSuccess': 'Unshared successfully',
+  'claw.event.metaTitle': 'Meta',
+} as const

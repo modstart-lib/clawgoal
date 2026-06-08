@@ -1,0 +1,6 @@
+/* Claw brand overrides for electron startup page */
+:root {
+  --brand: #E87F24;
+  --brand-light: rgba(232, 127, 36, 0.10);
+  --brand-mid: rgba(232, 127, 36, 0.25);
+}

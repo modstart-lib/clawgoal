@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClawGoal</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #f4f5f8;
+      --bg-card: #ffffff;
+      --text: #1a1a2e;
+      --text-secondary: #6b6b80;
+      --text-tertiary: #999aad;
+      --border: rgba(0, 0, 0, 0.07);
+      --border-focus: rgba(0, 178, 121, 0.5);
+      --error: #e74c4c;
+      --error-bg: rgba(231, 76, 76, 0.07);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font-display: 'SF Pro Display', 'Century Gothic', 'Futura', 'Trebuchet MS', 'Segoe UI', sans-serif;
+      --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+      --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0, 178, 121, 0.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #splashContainer {
+      position: relative;
+      z-index: 1;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.4s ease-out;
+    }
+
+    .window-close-btn {
+      position: fixed; top: 8px; right: 8px;
+      width: 30px; height: 30px;
+      display: none; align-items: center; justify-content: center;
+      border-radius: var(--radius-sm); cursor: pointer; z-index: 999999;
+      color: var(--text-tertiary);
+      background: rgba(0,0,0,0.04); border: 1px solid var(--border);
+      transition: background 0.15s, color 0.15s;
+    }
+    .window-close-btn:hover { background: rgba(0,0,0,0.08); color: var(--text); }
+
+    /* ═══ LOADING ═══ */
+    #loadingScreen {
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+    }
+
+    .logo-area {
+      position: relative; width: 88px; height: 88px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-ring {
+      position: absolute; inset: -6px;
+      border-radius: 50%; border: 1.5px solid var(--border);
+    }
+    .logo-ring-arc {
+      position: absolute; inset: -7.5px;
+      border-radius: 50%;
+      background: conic-gradient(transparent 0deg, transparent 120deg, var(--brand) 170deg, var(--brand-mid) 190deg, transparent 240deg, transparent 360deg);
+      mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
+      animation: ringSweep 2s linear infinite;
+    }
+    @keyframes ringSweep { to { transform: rotate(360deg); } }
+
+    .orbit-dot {
+      position: absolute; width: 4px; height: 4px; border-radius: 50%;
+      background: var(--brand); box-shadow: 0 0 6px rgba(0,178,121,0.35);
+      top: 50%; left: 50%; margin: -2px 0 0 -2px;
+      animation: orbit 2s linear infinite;
+    }
+    .orbit-dot-2 {
+      width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px;
+      background: #1a1a2e; box-shadow: none;
+      animation: orbit 2.8s linear infinite; animation-delay: -0.6s;
+    }
+    @keyframes orbit { to { transform: rotate(360deg) translateX(44px); } }
+
+    .logo-icon {
+      position: relative; z-index: 1;
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon img { width: 48px; height: 48px; display: block; }
+
+    .brand-name {
+      font-family: var(--font-display); font-weight: 700; font-size: 20px;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--text); opacity: 0.85;
+    }
+
+    .loading-bar-wrap {
+      width: 180px; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden;
+    }
+    .loading-bar-fill {
+      height: 100%; width: 100%;
+      background: linear-gradient(90deg, transparent, var(--brand), transparent);
+      animation: barSweep 1.6s ease-in-out infinite;
+    }
+    @keyframes barSweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+    .status-area {
+      display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 36px;
+    }
+    .status-text {
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary);
+      letter-spacing: 0.3px; transition: opacity 0.2s;
+    }
+    .status-text::before { content: '>'; color: var(--brand); margin-right: 6px; font-weight: 600; }
+
+    .error-box {
+      display: none; background: var(--error-bg); border: 1px solid rgba(231,76,76,0.2);
+      border-radius: var(--radius-sm); padding: 12px 20px; max-width: 320px; text-align: center;
+    }
+    .error-box.visible { display: block; }
+    .error-title { font-size: 12px; font-weight: 600; color: var(--error); margin-bottom: 3px; }
+    .error-msg { font-size: 11px; color: var(--error); opacity: 0.8; word-break: break-all; font-family: var(--font-mono); }
+
+    /* ── Debug bar ── */
+    #debugBar {
+      display: none;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 8px 16px;
+      background: rgba(0,0,0,0.85);
+      color: #0f0;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      line-height: 1.6;
+      z-index: 999999;
+      max-height: 140px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    #debugBar.visible { display: block; }
+
+    /* ═══ SETUP ═══ */
+    #setupScreen {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      width: 100vw; height: 100vh;
+    }
+    #setupScreen.visible { display: flex; }
+
+    .setup-inner {
+      width: 520px; max-width: 92vw;
+      padding: 28px 0 24px;
+      min-height: 320px; /* keep consistent height across tab switches to prevent logo re-centering flicker */
+      animation: fadeUp 0.4s ease-out;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    .setup-top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .setup-top-left { display: flex; align-items: center; gap: 10px; }
+    .setup-top-left .logo-mark { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+    .setup-top-left .logo-mark img { width: 28px; height: 28px; display: block; }
+    .setup-top-left .brand-title { font-size: 16px; font-weight: 600; color: var(--text); }
+    .setup-top-left .brand-subtitle { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+
+    .lang-switcher { display: flex; gap: 4px; }
+    .lang-btn { padding: 3px 9px; background: transparent; border: 1px solid var(--border); border-radius: 5px; font-size: 11px; cursor: pointer; color: var(--text-tertiary); font-family: var(--font-body); transition: all 0.15s; }
+    .lang-btn:hover { border-color: #bbb; color: var(--text-secondary); }
+    .lang-btn.active { border-color: var(--brand); color: var(--brand); background: var(--brand-light); }
+
+    .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .tab-btn { flex: 1; padding: 9px 0; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 13px; font-weight: 500; color: var(--text-tertiary); cursor: pointer; font-family: var(--font-body); transition: color 0.2s, border-color 0.2s; }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+    .input-row { display: flex; gap: 8px; }
+
+    .form-group input[type="text"], .form-group input[type="password"] {
+      width: 100%; padding: 9px 13px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; color: var(--text); outline: none; font-family: var(--font-body); transition: border-color 0.2s, box-shadow 0.2s; user-select: text; -webkit-user-select: text;
+    }
+    .form-group input::placeholder { color: var(--text-tertiary); }
+    .form-group input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--brand-light); }
+
+    .btn-pick { padding: 9px 15px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-secondary); font-family: var(--font-body); transition: background 0.15s; flex-shrink: 0; }
+    .btn-pick:hover { background: rgba(0,0,0,0.03); }
+    .btn-pick:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { width: 100%; padding: 10px; background: var(--brand); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; font-family: var(--font-body); transition: opacity 0.15s, transform 0.1s; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    .hint { font-size: 12px; color: var(--text-tertiary); margin-bottom: 14px; line-height: 1.5; }
+
+    .setup-status { display: none; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-top: 14px; font-size: 12px; color: var(--text-secondary); }
+    .setup-status.visible { display: flex; }
+    .spinner { width: 14px; height: 14px; border: 1.5px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .setup-error { display: none; padding: 10px 14px; background: var(--error-bg); border: 1px solid rgba(231,76,76,0.2); border-radius: var(--radius-sm); margin-top: 14px; font-size: 12px; color: var(--error); }
+    .setup-error.visible { display: block; }
+
+    /* ── Entrance stagger ── */
+    #loadingScreen .logo-area,
+    #loadingScreen .brand-name,
+    #loadingScreen .loading-bar-wrap,
+    #loadingScreen .status-area {
+      opacity: 0; transform: translateY(12px);
+    }
+    #loadingScreen.entered .logo-area       { animation: fadeUp 0.5s ease-out 0.05s both; }
+    #loadingScreen.entered .brand-name      { animation: fadeUp 0.5s ease-out 0.18s both; }
+    #loadingScreen.entered .loading-bar-wrap { animation: fadeUp 0.5s ease-out 0.30s both; }
+    #loadingScreen.entered .status-area     { animation: fadeUp 0.5s ease-out 0.38s both; }
+  </style>
+</head>
+<body>
+  <!-- draggable title bar -->
+  <div style="position:fixed;top:0;left:0;right:0;height:32px;-webkit-app-region:drag;z-index:99999;"></div>
+
+  <!-- close btn -->
+  <div class="window-close-btn" id="windowCloseBtn" onclick="window.__api.call('close')" aria-label="Close">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/>
+    </svg>
+  </div>
+
+  <div id="splashContainer">
+    <!-- LOADING -->
+    <div id="loadingScreen">
+      <div class="logo-area">
+        <div class="logo-ring"></div>
+        <div class="logo-ring-arc"></div>
+        <div class="orbit-dot orbit-dot-1"></div>
+        <div class="orbit-dot orbit-dot-2"></div>
+        <div class="logo-icon"><img src="logo.big.trans.svg" alt="ClawGoal" /></div>
+      </div>
+      <div class="brand-name">ClawGoal</div>
+      <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
+      <div class="status-area">
+        <div class="status-text" id="loadingStatusText">正在启动...</div>
+        <div class="error-box" id="loadingErrorBox">
+          <div class="error-title" id="loadingErrorTitle">启动失败</div>
+          <div class="error-msg" id="loadingErrorMsg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div id="setupScreen">
+      <div class="setup-inner">
+        <div class="setup-top-bar">
+          <div class="setup-top-left">
+            <div class="logo-mark"><img src="logo.big.trans.svg" alt="logo" /></div>
+            <div>
+              <div class="brand-title">ClawGoal</div>
+              <div class="brand-subtitle" id="headerSubtitle"></div>
+            </div>
+          </div>
+          <div class="lang-switcher">
+            <button class="lang-btn" id="langZh" onclick="setLang('zh-CN')">中文</button>
+            <button class="lang-btn" id="langEn" onclick="setLang('en-US')">EN</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="install" id="tabBtnInstall"></button>
+          <button class="tab-btn" data-tab="restore" id="tabBtnRestore"></button>
+        </div>
+
+        <div class="tab-panel active" id="tab-install">
+          <input type="hidden" id="username" />
+          <input type="hidden" id="password" />
+          <div class="form-group">
+            <label id="labelDataPath"></label>
+            <div class="input-row">
+              <input type="text" id="installPath" />
+              <button class="btn-pick" id="btnPickInstall"></button>
+            </div>
+          </div>
+          <button class="btn-primary" id="btnInstall"></button>
+        </div>
+
+        <div class="tab-panel" id="tab-restore">
+          <p class="hint" id="restoreHint"></p>
+          <div class="form-group">
+            <label id="labelDataDir"></label>
+            <div class="input-row">
+              <input type="text" id="restorePath" />
+              <button class="btn-pick" id="btnPickRestore"></button>
+            </div>
+          </div>
+          <button class="btn-primary" id="btnRestore" disabled></button>
+        </div>
+
+        <div class="setup-status" id="setupStatusBar">
+          <div class="spinner"></div>
+          <span id="setupStatusText"></span>
+        </div>
+        <div class="setup-error" id="setupErrorBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- debug bar (hidden by default, shown on errors or when __api is missing) -->
+  <div id="debugBar"></div>
+
+  <script>
+    // ══════════════════════════════════════════════════════════
+    // DEBUG LOGGING
+    // ══════════════════════════════════════════════════════════
+    var _dbg = []
+
+    function dbg(msg) {
+      _dbg.push('[' + new Date().toISOString().slice(11, 23) + '] ' + msg)
+      console.log('[splash]', msg)
+      var el = document.getElementById('debugBar')
+      if (el) {
+        el.textContent = _dbg.join('\n')
+        el.scrollTop = el.scrollHeight
+      }
+    }
+
+    function dbgError(msg, err) {
+      var detail = err ? (err.message || err.stack || String(err)) : ''
+      dbg('ERROR: ' + msg + (detail ? ' — ' + detail : ''))
+      var el = document.getElementById('debugBar')
+      if (el) el.classList.add('visible')
+    }
+
+    dbg('Script started')
+
+    // ══════════════════════════════════════════════════════════
+    // i18n
+    // ══════════════════════════════════════════════════════════
+    var messages = {
+      'zh-CN': {
+        loadingStarting: '正在启动...',
+        loadingReady: '服务就绪，正在加载...',
+        loadingFailed: '启动失败',
+        headerSubtitle: '首次使用，请完成初始化配置',
+        tabRestore: '从数据恢复', tabInstall: '全新安装',
+        restoreHint: '如果你已有历史数据目录，选择该目录即可恢复所有数据并启动服务。',
+        labelDataDir: '数据目录', restorePathPlaceholder: '选择数据目录...',
+        btnPickRestore: '选择目录', btnRestore: '开始恢复',
+        labelDataPath: '数据存储路径', installPathPlaceholder: '选择数据存储目录...',
+        btnPickInstall: '选择目录', btnInstall: '开始安装',
+        statusLoading: '正在加载数据...', statusInitializing: '正在初始化配置...',
+        statusReady: '服务已就绪，正在跳转...',
+        errPrefix: '错误: ', errDataPathRequired: '请选择数据存储路径',
+      },
+      'en-US': {
+        loadingStarting: 'Starting...',
+        loadingReady: 'Service ready, loading...',
+        loadingFailed: 'Startup failed',
+        headerSubtitle: 'First launch — complete the setup to get started.',
+        tabRestore: 'Restore from Data', tabInstall: 'Fresh Install',
+        restoreHint: 'If you have an existing data directory, select it to restore all data and launch the service.',
+        labelDataDir: 'Data Directory', restorePathPlaceholder: 'Select data directory...',
+        btnPickRestore: 'Browse', btnRestore: 'Start Restore',
+        labelDataPath: 'Data Storage Path', installPathPlaceholder: 'Select data directory...',
+        btnPickInstall: 'Browse', btnInstall: 'Start Install',
+        statusLoading: 'Loading data...', statusInitializing: 'Initializing configuration...',
+        statusReady: 'Service ready, redirecting...',
+        errPrefix: 'Error: ', errDataPathRequired: 'Please select a data storage path',
+      },
+    }
+
+    var LANG_KEY = 'clawgoal_setup_lang'
+    var currentLang = localStorage.getItem(LANG_KEY) || 'zh-CN'
+
+    function t(key) {
+      return (messages[currentLang] || messages['zh-CN'])[key] || key
+    }
+
+    function applyLang() {
+      try {
+        document.documentElement.lang = currentLang
+        document.getElementById('langZh').classList.toggle('active', currentLang === 'zh-CN')
+        document.getElementById('langEn').classList.toggle('active', currentLang === 'en-US')
+        document.getElementById('loadingStatusText').textContent = t('loadingStarting')
+        document.getElementById('loadingErrorTitle').textContent = t('loadingFailed')
+        document.getElementById('headerSubtitle').textContent = t('headerSubtitle')
+        document.getElementById('tabBtnRestore').textContent = t('tabRestore')
+        document.getElementById('tabBtnInstall').textContent = t('tabInstall')
+        document.getElementById('restoreHint').textContent = t('restoreHint')
+        document.getElementById('labelDataDir').textContent = t('labelDataDir')
+        document.getElementById('restorePath').placeholder = t('restorePathPlaceholder')
+        document.getElementById('btnPickRestore').textContent = t('btnPickRestore')
+        document.getElementById('btnRestore').textContent = t('btnRestore')
+        document.getElementById('labelDataPath').textContent = t('labelDataPath')
+        document.getElementById('installPath').placeholder = t('installPathPlaceholder')
+        document.getElementById('btnPickInstall').textContent = t('btnPickInstall')
+        document.getElementById('btnInstall').textContent = t('btnInstall')
+        dbg('applyLang() OK')
+      } catch (e) { dbgError('applyLang', e) }
+    }
+
+    function setLang(lang) {
+      currentLang = lang
+      localStorage.setItem(LANG_KEY, lang)
+      applyLang()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // DOM refs
+    // ══════════════════════════════════════════════════════════
+    dbg('Getting DOM refs...')
+    var loadingStatusEl = document.getElementById('loadingStatusText')
+    var loadingErrorBox = document.getElementById('loadingErrorBox')
+    var loadingErrorMsg = document.getElementById('loadingErrorMsg')
+    var setupStatusBar = document.getElementById('setupStatusBar')
+    var setupStatusText = document.getElementById('setupStatusText')
+    var setupErrorBar = document.getElementById('setupErrorBar')
+    dbg('DOM refs: loadingStatusEl=' + !!loadingStatusEl + ' setupStatusBar=' + !!setupStatusBar)
+
+    function setLoadingStatus(text) {
+      if (loadingStatusEl) loadingStatusEl.textContent = text
+    }
+    function showLoadingError(msg) {
+      if (loadingErrorBox) loadingErrorBox.classList.add('visible')
+      if (loadingErrorMsg) loadingErrorMsg.textContent = msg
+      if (loadingStatusEl) loadingStatusEl.textContent = t('loadingFailed')
+      if (setupErrorBar) setupErrorBar.textContent = t('errPrefix') + msg
+    }
+    function setSetupStatus(msg) {
+      if (setupStatusBar) setupStatusBar.classList.add('visible')
+      if (setupStatusText) setupStatusText.textContent = msg
+      if (setupErrorBar) setupErrorBar.classList.remove('visible')
+    }
+    function showSetupError(msg) {
+      if (setupStatusBar) setupStatusBar.classList.remove('visible')
+      if (setupErrorBar) {
+        setupErrorBar.classList.add('visible')
+        setupErrorBar.textContent = t('errPrefix') + msg
+      }
+    }
+    function setAllSetupBtnsDisabled(disabled) {
+      ;['btnRestore', 'btnInstall', 'btnPickRestore', 'btnPickInstall'].forEach(function(id) {
+        var el = document.getElementById(id)
+        if (el) el.disabled = disabled
+      })
+    }
+    function showSetupScreen() {
+      dbg('showSetupScreen() called')
+      var ls = document.getElementById('loadingScreen')
+      var ss = document.getElementById('setupScreen')
+      if (ls) ls.style.display = 'none'
+      if (ss) ss.classList.add('visible')
+    }
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active') })
+        document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active') })
+        btn.classList.add('active')
+        var panel = document.getElementById('tab-' + btn.dataset.tab)
+        if (panel) panel.classList.add('active')
+      })
+    })
+
+    // Entrance animation
+    requestAnimationFrame(function() {
+      var ls = document.getElementById('loadingScreen')
+      if (ls) ls.classList.add('entered')
+    })
+
+    // DevTools: Ctrl/Cmd+Shift+H ×3
+    var devToolsPressTimes = []
+    document.addEventListener('keydown', function(e) {
+      if (e.shiftKey && e.key === 'H' && (e.metaKey || e.ctrlKey)) {
+        var now = Date.now()
+        devToolsPressTimes.push(now)
+        while (devToolsPressTimes.length > 0 && devToolsPressTimes[0] < now - 1000) {
+          devToolsPressTimes.shift()
+        }
+        if (devToolsPressTimes.length >= 3) {
+          devToolsPressTimes.length = 0
+          if (window.__api) window.__api.call('toggleDevTools')
+          dbg('DevTools toggled')
+        }
+      }
+    })
+
+    // ══════════════════════════════════════════════════════════
+    // Electron IPC
+    // ══════════════════════════════════════════════════════════
+    function initElectronEvents() {
+      dbg('initElectronEvents() called')
+
+      if (typeof window.__api === 'undefined') {
+        dbg('window.__api not available, retrying in 50ms...')
+        setTimeout(initElectronEvents, 50)
+        return
+      }
+
+      dbg('window.__api is available, type: ' + typeof window.__api)
+      dbg('window.__api.call: ' + typeof window.__api.call)
+      dbg('window.__api.eval: ' + typeof window.__api.eval)
+
+      // Register event handlers
+      try {
+        window.__api.eval('server-status', function(msg) {
+          dbg('IPC event: server-status → ' + msg)
+          setLoadingStatus(msg)
+          setSetupStatus(msg)
+        })
+
+        window.__api.eval('server-ready', function(url) {
+          dbg('IPC event: server-ready → ' + url)
+          setLoadingStatus(t('loadingReady'))
+          setSetupStatus(t('statusReady'))
+        })
+
+        window.__api.eval('server-setup', function(defaultDataPath) {
+          dbg('IPC event: server-setup → defaultDataPath=' + defaultDataPath)
+          if (defaultDataPath && !installPathEl.value) {
+            installPathEl.value = defaultDataPath
+          }
+          showSetupScreen()
+        })
+
+        window.__api.eval('server-error', function(msg) {
+          dbg('IPC event: server-error → ' + msg)
+          showLoadingError(msg)
+          showSetupError(msg)
+          setAllSetupBtnsDisabled(false)
+        })
+
+        dbg('All IPC handlers registered, calling frontendReady...')
+        window.__api.call('frontendReady')
+        dbg('frontendReady called successfully')
+      } catch (e) {
+        dbgError('Failed to register IPC handlers or call frontendReady', e)
+      }
+    }
+
+    // Start init
+    dbg('Bootstrap starting...')
+    initElectronEvents()
+
+    // ══════════════════════════════════════════════════════════
+    // Restore & Install handlers
+    // ══════════════════════════════════════════════════════════
+    var restorePathEl = document.getElementById('restorePath')
+    var btnPickRestore = document.getElementById('btnPickRestore')
+    var btnRestore = document.getElementById('btnRestore')
+
+    if (restorePathEl) {
+      restorePathEl.addEventListener('input', function() {
+        if (btnRestore) btnRestore.disabled = !restorePathEl.value.trim()
+      })
+    }
+    if (btnPickRestore) {
+      btnPickRestore.addEventListener('click', async function() {
+        try {
+          var dir = await window.__api.call('selectDirectory')
+          if (dir && restorePathEl) {
+            restorePathEl.value = dir
+            if (btnRestore) btnRestore.disabled = false
+          }
+        } catch(e) { dbgError('selectDirectory(restore)', e) }
+      })
+    }
+    if (btnRestore) {
+      btnRestore.addEventListener('click', function() {
+        var dataPath = restorePathEl ? restorePathEl.value.trim() : ''
+        if (!dataPath) return
+        setAllSetupBtnsDisabled(true)
+        setSetupStatus(t('statusLoading'))
+        window.__api.call('startRestore', dataPath)
+      })
+    }
+
+    var installPathEl = document.getElementById('installPath')
+    var btnPickInstall = document.getElementById('btnPickInstall')
+    var btnInstall = document.getElementById('btnInstall')
+
+    if (btnPickInstall) {
+      btnPickInstall.addEventListener('click', async function() {
+        try {
+          var dir = await window.__api.call('selectDirectory')
+          if (dir && installPathEl) installPathEl.value = dir
+        } catch(e) { dbgError('selectDirectory(install)', e) }
+      })
+    }
+    if (btnInstall) {
+      btnInstall.addEventListener('click', function() {
+        var usernameEl = document.getElementById('username')
+        var passwordEl = document.getElementById('password')
+        if (usernameEl && !usernameEl.value) usernameEl.value = 'user_' + Math.random().toString(36).slice(2, 10)
+        if (passwordEl && !passwordEl.value) passwordEl.value = Math.random().toString(36).slice(2, 18) + Math.random().toString(36).slice(2, 18)
+        var username = usernameEl ? usernameEl.value : ''
+        var password = passwordEl ? passwordEl.value : ''
+        var dataPath = installPathEl ? installPathEl.value.trim() : ''
+        if (!dataPath) { showSetupError(t('errDataPathRequired')); return }
+        setAllSetupBtnsDisabled(true)
+        setSetupStatus(t('statusInitializing'))
+        window.__api.call('startInstall', { username: username, password: password, dataPath: dataPath })
+      })
+    }
+
+    // Show close btn on non-macOS
+    if (window.__api && window.__api.platform !== 'darwin') {
+      var cb = document.getElementById('windowCloseBtn')
+      if (cb) cb.style.display = 'flex'
+    }
+
+    // Init i18n
+    applyLang()
+    dbg('Script complete')
+  </script>
+</body>
+</html>

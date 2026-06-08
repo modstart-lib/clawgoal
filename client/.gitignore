@@ -1,0 +1,12 @@
+# Electron build output
+build/
+
+# Binary (regenerated from packages/backend, not committed)
+backend/*
+!backend/.gitkeep
+
+# Node.js
+node_modules/
+
+# macOS
+.DS_Store

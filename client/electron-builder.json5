@@ -1,0 +1,53 @@
+// @see https://www.electron.build/configuration/configuration
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.clawgoal.app",
+  "productName": "ClawGoal",
+  "directories": {
+    "output": "build"
+  },
+  "files": [
+    "main.js",
+    "preload.js",
+    "frontend/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "backend",
+      "to": "backend",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "icon": "windows/icon.ico",
+    "target": ["nsis"],
+    "artifactName": "${productName}-App-win-${arch}-${version}.${ext}"
+  },
+  "nsis": {
+    "artifactName": "${productName}-App-win-setup-${arch}-${version}.${ext}",
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true
+  },
+  "mac": {
+    "icon": "iconfile.icns",
+    "target": [
+      { "target": "dmg", "arch": ["x64", "arm64"] }
+    ],
+    "artifactName": "${productName}-App-mac-${arch}-${version}.${ext}",
+    "category": "public.app-category.productivity",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "resources/entitlements.mac.plist",
+    "entitlementsInherit": "resources/entitlements.mac.plist"
+  },
+  "linux": {
+    "icon": "appicon.png",
+    "category": "Utility",
+    "target": [
+      { "target": "AppImage", "arch": ["x64", "arm64"] },
+      { "target": "deb", "arch": ["x64", "arm64"] }
+    ],
+    "artifactName": "${productName}-App-linux-${arch}-${version}.${ext}"
+  }
+}

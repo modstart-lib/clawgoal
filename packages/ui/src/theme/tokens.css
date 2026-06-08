@@ -1,0 +1,115 @@
+/* ================================================================
+ * 视觉设计 Tokens — CSS 变量定义
+ *
+ * 所有颜色 Token 的值与 src/theme/tokens.ts 保持一致。
+ * 修改颜色时请同步更新两个文件。
+ * ================================================================ */
+
+/*
+ * Tailwind v4 @theme inline
+ * 将 Tailwind utility 色彩类（bg-primary / text-success 等）
+ * 映射到 CSS 变量，从而支持运行时主题切换（暗色模式、用户自定义主色）。
+ */
+@theme inline {
+  /* 品牌主色（完整色阶，600 = 主色，700 = hover 色，随主题动态切换） */
+  --color-primary-50:    var(--token-primary-50);
+  --color-primary-100:   var(--token-primary-100);
+  --color-primary-200:   var(--token-primary-200);
+  --color-primary-300:   var(--token-primary-300);
+  --color-primary-400:   var(--token-primary-400);
+  --color-primary-500:   var(--token-primary-500);
+  --color-primary-600:   var(--token-primary-600);
+  --color-primary-700:   var(--token-primary-700);
+  --color-primary-800:   var(--token-primary-800);
+  --color-primary-900:   var(--token-primary-900);
+  /* 别名（保持向后兼容） */
+  --color-primary:       var(--token-primary-600);
+  --color-primary-hover: var(--token-primary-700);
+
+  /* 语义色 */
+  --color-success:       var(--token-success);
+  --color-warning:       var(--token-warning);
+  --color-error:         var(--token-error);
+  --color-accent:        var(--token-accent);
+
+  /* 布局背景 */
+  --color-surface:       var(--token-surface);
+  --color-panel:         var(--token-panel);
+
+  /* 高级 UI 设计组件（Glassmorphism等） */
+  --color-glass:         var(--token-glass);
+  --color-glass-hover:   var(--token-glass-hover);
+  --color-glass-border:  var(--token-glass-border);
+  --color-glass-border-hover: var(--token-glass-border-hover);
+}
+
+/* ── 亮色模式默认值 ──────────────────────────────────────────── */
+:root {
+  /* 品牌主色色阶（基准色 #E87F24，暖橙色） */
+  --token-primary-50:    #fef5ee;
+  --token-primary-100:   #fdead9;
+  --token-primary-200:   #fbd4b3;
+  --token-primary-300:   #f8b88a;
+  --token-primary-400:   #f59c60;
+  --token-primary-500:   #f08436;
+  --token-primary-600:   #E87F24;   /* = 原 --token-primary */
+  --token-primary-700:   #c36814;   /* = 原 --token-primary-hover */
+  --token-primary-800:   #9d5010;
+  --token-primary-900:   #763a0c;
+  /* 别名（向后兼容） */
+  --token-primary:       var(--token-primary-600);
+  --token-primary-hover: var(--token-primary-700);
+
+  /* 语义色 */
+  --token-success:       #52c41a;
+  --token-warning:       #faad14;
+  --token-error:         #ff4d4f;
+  --token-accent:        #722ed1;
+
+  /* 布局背景 */
+  --token-surface:       #ffffff;
+  --token-panel:         #f9fafb;
+
+  /* 高级 UI 设计组件（Glassmorphism等） */
+  --token-glass:         rgba(255, 255, 255, 0.7);
+  --token-glass-hover:   rgba(255, 255, 255, 0.9);
+  --token-glass-border:  rgba(229, 231, 235, 0.8);        /* gray-200/80 */
+  --token-glass-border-hover: rgba(232, 127, 36, 0.35);   /* primary/35 */
+
+  /* 正文颜色 */
+  --token-text:          #111827;
+
+  /* ── 向后兼容旧变量名（勿直接修改，由 token 接管） ─────── */
+  --primary-color:       var(--token-primary);
+  --primary-dark:        var(--token-primary-hover);
+  --secondary-color:     var(--token-success);
+  --accent-color:        var(--token-accent);
+  --background-color:    var(--token-surface);
+  --surface-color:       var(--token-panel);
+}
+
+/* ── 暗色模式覆盖 ─────────────────────────────────────────────── */
+.dark {
+  /* 暗色模式下主色整体提亮一个色阶，确保在深色背景上的对比度 */
+  --token-primary-50:    #763a0c;
+  --token-primary-100:   #9d5010;
+  --token-primary-200:   #c36814;
+  --token-primary-300:   #E87F24;
+  --token-primary-400:   #f08436;
+  --token-primary-500:   #f59c60;
+  --token-primary-600:   #f8b88a;   /* = 原暗色 --token-primary */
+  --token-primary-700:   #fbd4b3;
+  --token-primary-800:   #fdead9;
+  --token-primary-900:   #fef5ee;
+  --token-primary:       var(--token-primary-600);
+  --token-primary-hover: var(--token-primary-700);
+  --token-surface:       #111827;
+  --token-panel:         #1f2937;
+  --token-text:          #f3f4f6;
+
+  /* 高级 UI 设计组件（Glassmorphism等） */
+  --token-glass:         rgba(31, 41, 55, 0.7);           /* gray-800/70 */
+  --token-glass-hover:   rgba(31, 41, 55, 0.9);           /* gray-800/90 */
+  --token-glass-border:  rgba(55, 65, 81, 0.8);           /* gray-700/80 */
+  --token-glass-border-hover: rgba(232, 127, 36, 0.45);   /* primary/45 */
+}

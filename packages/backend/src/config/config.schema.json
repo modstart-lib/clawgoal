@@ -1,0 +1,507 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClawGoal Configuration",
+  "description": "Configuration schema for backend server",
+  "type": "object",
+  "properties": {
+    "port": {
+      "type": "integer",
+      "description": "Server port number",
+      "default": 53001,
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "url": {
+      "type": "string",
+      "description": "Public access URL of the service (e.g. https://example.com). Used by the frontend when generating absolute links (webhooks, connectors, etc.). Leave empty to auto-detect from the browser's current origin.",
+      "default": ""
+    },
+    "dataPath": {
+      "type": "string",
+      "description": "Base directory for all runtime data (logs, uploads, database, agent tasks, etc.). Defaults to ~/.clawgoal/data when not set. Supports ~ home-directory alias (e.g. ~/mydata) and absolute paths. The config.yaml file itself is resolved from this directory (<dataPath>/config.yaml). Can also be overridden before startup via the DATA_PATH environment variable.",
+      "default": "~/.clawgoal/data"
+    },
+    "lang": {
+      "type": "string",
+      "description": "Default system language. Used as the last-resort fallback when the client sends no Accept-Language header and the user has no personalised language configured. Supported values: zh-CN (Simplified Chinese), en-US (English).",
+      "enum": ["en-US","zh-CN"],
+      "default": "en-US"
+    },
+    "database": {
+      "type": "object",
+      "description": "Database connection configuration",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Database provider type",
+          "enum": ["mysql", "sqlite"],
+          "default": "mysql"
+        },
+      },
+      "required": []
+    },
+    "supervisorUserId": {
+      "type": "integer",
+      "description": "Default user ID used for system-level operations such as setup.yaml seeding, API token auth, and any hardcoded user context. Defaults to 1.",
+      "default": 1,
+      "minimum": 1
+    },
+    "supervisorTenantId": {
+      "type": "integer",
+      "description": "Default tenant ID used for system-level operations. Defaults to 1.",
+      "default": 1,
+      "minimum": 1
+    },
+    "auth": {
+      "type": "object",
+      "description": "Authentication configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Authentication type. 'fixed'=single-user mode (no user management UI); 'database'=multi-user database mode (enables user management UI)",
+          "enum": ["fixed", "database"],
+          "default": "fixed"
+        },
+        "userId": {
+          "type": "integer",
+          "description": "User ID for the authenticated user. Defaults to 1.",
+          "default": 1
+        },
+        "tenantId": {
+          "type": "integer",
+          "description": "Tenant ID for multi-tenant isolation. Defaults to 1.",
+          "default": 1
+        },
+        "username": {
+          "type": "string",
+          "description": "Username for authentication"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password for authentication"
+        }
+      },
+      "required": ["type", "username", "password"]
+    },
+    "jwt": {
+      "type": "object",
+      "description": "JWT token configuration",
+      "properties": {
+        "secret": {
+          "type": "string",
+          "description": "Secret key for JWT token signing",
+          "minLength": 16
+        }
+      },
+      "required": ["secret"]
+    },
+    "log": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path for log files. Defaults to '<dataPath>/logs/'"
+        }
+      }
+    },
+    "upload": {
+      "type": "object",
+      "description": "File upload configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Storage backend: 'local'=local filesystem; 'aliyunOss'=Aliyun OSS; 'tencentCos'=Tencent COS; 'qiniu'=Qiniu Cloud; 'awsS3'=AWS S3 / MinIO; 'azureBlob'=Azure Blob Storage",
+          "enum": ["local", "aliyunOss", "tencentCos", "qiniu", "awsS3", "azureBlob"],
+          "default": "local"
+        },
+        "url": {
+          "type": "string",
+          "description": "Public base URL used to build file access links",
+          "format": "uri"
+        },
+        "limitExt": {
+          "type": "string",
+          "description": "Allowed file extensions (comma-separated, no leading dots)",
+          "default": "jpg,png,gif,svg,doc,docx,xls,xlsx"
+        },
+        "limitSize": {
+          "type": "integer",
+          "description": "Maximum upload size in bytes (default: 1 MB = 1,024,000)",
+          "default": 1024000,
+          "minimum": 0
+        },
+        "local": {
+          "type": "object",
+          "description": "Local filesystem storage configuration",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Storage directory. Defaults to '<dataPath>/uploads/'"
+            }
+          }
+        },
+        "aliyunOss": {
+          "type": "object",
+          "description": "Aliyun OSS storage configuration (required when type='aliyunOss')",
+          "properties": {
+            "accessKeyId": { "type": "string", "description": "Aliyun AccessKey ID" },
+            "accessKeySecret": { "type": "string", "description": "Aliyun AccessKey Secret" },
+            "bucket": { "type": "string", "description": "OSS bucket name" },
+            "region": { "type": "string", "description": "OSS region, e.g. oss-cn-hangzhou", "default": "oss-cn-hangzhou" },
+            "endpoint": { "type": "string", "description": "Optional custom endpoint" }
+          }
+        },
+        "tencentCos": {
+          "type": "object",
+          "description": "Tencent COS storage configuration (required when type='tencentCos')",
+          "properties": {
+            "secretId": { "type": "string", "description": "Tencent Cloud SecretId" },
+            "secretKey": { "type": "string", "description": "Tencent Cloud SecretKey" },
+            "bucket": { "type": "string", "description": "COS bucket name (format: name-appid)" },
+            "region": { "type": "string", "description": "COS region, e.g. ap-guangzhou", "default": "ap-guangzhou" }
+          }
+        },
+        "qiniu": {
+          "type": "object",
+          "description": "Qiniu Cloud storage configuration (required when type='qiniu')",
+          "properties": {
+            "accessKey": { "type": "string", "description": "Qiniu AccessKey" },
+            "secretKey": { "type": "string", "description": "Qiniu SecretKey" },
+            "bucket": { "type": "string", "description": "Qiniu bucket name" },
+            "region": { "type": "string", "description": "Region code: z0=East China z1=North China z2=South China na0=North America as0=SE Asia", "default": "z0" }
+          }
+        },
+        "awsS3": {
+          "type": "object",
+          "description": "AWS S3 / MinIO storage configuration (required when type='awsS3')",
+          "properties": {
+            "accessKeyId": { "type": "string", "description": "AWS Access Key ID" },
+            "secretAccessKey": { "type": "string", "description": "AWS Secret Access Key" },
+            "bucket": { "type": "string", "description": "S3 bucket name" },
+            "region": { "type": "string", "description": "AWS region, e.g. us-east-1", "default": "us-east-1" },
+            "endpoint": { "type": "string", "description": "Optional custom endpoint (e.g. for MinIO)" }
+          }
+        },
+        "azureBlob": {
+          "type": "object",
+          "description": "Azure Blob Storage configuration (required when type='azureBlob')",
+          "properties": {
+            "accountName": { "type": "string", "description": "Azure storage account name" },
+            "accountKey": { "type": "string", "description": "Azure storage account key" },
+            "containerName": { "type": "string", "description": "Blob container name" },
+            "endpoint": { "type": "string", "description": "Optional custom endpoint" }
+          }
+        }
+      }
+    },
+    "modelProviders": {
+      "type": "array",
+      "description": "Named model provider configurations. Each provider defines a driver (apiBase/apiKey) and exposes a list of models. Reference models as 'providerName|modelName'.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique provider name (used as prefix in 'providerName|modelName' references)"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider driver type. 'openai'=Official OpenAI API; 'gemini'=Google Gemini native; 'claude'=Anthropic Claude native; 'custom'=custom endpoint (API protocol determined by 'format').",
+            "enum": ["openai", "gemini", "claude", "custom"],
+            "default": "openai"
+          },
+          "format": {
+            "type": "string",
+            "description": "API format/protocol used when communicating with a 'custom' provider endpoint. 'openai'=OpenAI-compatible ChatCompletion; 'gemini'=Google Gemini format; 'anthropic'=Anthropic Messages API; 'ollama'=Ollama REST API (health-check uses GET /api/tags).",
+            "enum": ["openai", "gemini", "anthropic", "ollama"],
+            "default": "openai"
+          },
+          "apiBase": {
+            "type": "string",
+            "description": "API base URL",
+            "format": "uri",
+            "default": "https://api.openai.com/v1"
+          },
+          "apiKey": {
+            "type": "string",
+            "description": "API key for authentication"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Mark this provider as the default provider",
+            "default": false
+          },
+          "proxyName": {
+            "type": "string",
+            "description": "Optional proxy name to route requests through (must match a name in the proxy list)"
+          },
+          "models": {
+            "type": "array",
+            "description": "List of models this provider exposes",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Model name"
+                },
+                "imageInputs": {
+                  "type": "array",
+                  "description": "Supported image input formats. Default (empty/unset) means both url and base64 are accepted. Set to [\"base64\"] to only accept base64 images (remote URLs will be auto-converted).",
+                  "items": { "type": "string", "enum": ["url", "base64"] }
+                },
+                "temperature": {
+                  "type": "number",
+                  "description": "Default temperature for this model (0=precise, 1=creative). Overrides provider-level call temperature.",
+                  "minimum": 0,
+                  "maximum": 2
+                },
+                "maxTokens": {
+                  "type": "integer",
+                  "description": "Maximum number of tokens to generate per call. 0 or unset = no limit override.",
+                  "minimum": 0
+                },
+                "contextWindow": {
+                  "type": "integer",
+                  "description": "Context window size (e.g. 8192, 32768, 131072). 0 = use built-in default for this model.",
+                  "minimum": 0
+                }
+              },
+              "required": ["name"]
+            },
+            "minItems": 1
+          }
+        },
+        "required": ["name", "models"]
+      },
+      "minItems": 1
+    },
+    "embeddingModel": {
+      "type": "object",
+      "description": "Embedding provider for knowledge memory / vector search",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Embedding provider type: 'default' = built-in sqlite-vec (no external model needed); 'openai' = OpenAI-compatible remote API",
+          "enum": ["default", "openai"],
+          "default": "default"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model name (required for openai type)"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "API key (required for openai type)"
+        },
+        "apiBase": {
+          "type": "string",
+          "description": "API base URL (for openai type)",
+          "format": "uri"
+        }
+      },
+      "required": ["type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "openai" } }
+          },
+          "then": {
+            "required": ["apiKey"]
+          }
+        }
+      ]
+    },
+    "model": {
+      "type": "object",
+      "description": "Named model configurations (e.g., 'default', 'router').\nEach value is an array of items with 'name'.\nMultiple 'name' entries in the same array form a fallback chain:\n  - name: providerA|modelA\n  - name: providerB|modelB   ← tried if providerA fails",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "type": "array",
+          "description": "Model configuration array. Include multiple 'name' items for automatic fallback chaining.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Reference to model in format 'providerName|modelName'. Add multiple items with 'name' to enable fallback chaining.",
+                "pattern": "^[a-zA-Z0-9_-]+\\|[a-zA-Z0-9._-]+$"
+              }
+            }
+          },
+          "minItems": 1
+        }
+      },
+      "properties": {
+        "default": {
+          "description": "Default Model configuration (required)"
+        }
+      },
+      "required": ["default"]
+    },
+    "agent": {
+      "type": "object",
+      "description": "Agent task configuration",
+      "properties": {
+        "taskPath": {
+          "type": "string",
+          "description": "Directory path for agent task data. Defaults to '<dataPath>/agentTasks/'"
+        },
+        "maxConcurrent": {
+          "type": "integer",
+          "description": "Maximum number of concurrent agent tasks",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 100
+        }
+      }
+    },
+    "write": {
+      "type": "object",
+      "description": "Writer module configuration",
+      "properties": {
+        "extension": {
+          "type": "object",
+          "description": "Browser extension configuration",
+          "properties": {
+            "logPath": {
+              "type": "string",
+              "description": "Directory path for extension logs"
+            },
+            "id": {
+              "type": "string",
+              "description": "Browser extension ID"
+            }
+          }
+        }
+      }
+    },
+    "claw": {
+      "type": "object",
+      "description": "Claw module configuration",
+      "properties": {
+        "skillDirs": {
+          "type": "array",
+          "description": "Additional skill directories to load from, in addition to the default data/skills/. Each entry can be an absolute path or a path relative to the project root.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "description": "Runtime environment configurations (Python interpreter, etc.)",
+      "properties": {
+        "python": {
+          "type": "object",
+          "description": "Python interpreter configuration. If path is empty or not set, system python3 is used.",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to the Python interpreter (e.g. /usr/bin/python3). Defaults to system python3 if not set."
+            },
+            "version": {
+              "description": "Version string (e.g. '3.11')",
+              "oneOf": [{ "type": "string" }, { "type": "number" }]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "proxy": {
+      "type": "array",
+      "description": "Named proxy server configurations",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique name for this proxy entry"
+          },
+          "type": {
+            "type": "string",
+            "description": "Proxy protocol type",
+            "enum": ["http", "socks5"],
+            "default": "http"
+          },
+          "host": {
+            "type": "string",
+            "description": "Proxy server host or IP address"
+          },
+          "port": {
+            "type": "string",
+            "description": "Proxy server port number"
+          },
+          "username": {
+            "type": "string",
+            "description": "Optional proxy authentication username"
+          },
+          "password": {
+            "type": "string",
+            "description": "Optional proxy authentication password"
+          }
+        },
+        "required": ["name"]
+      }
+    },
+    "timezone": {
+      "type": "integer",
+      "description": "UTC offset in hours used for cron scheduling and Model time injection. e.g. 8 for UTC+8 (Asia/Shanghai), -5 for UTC-5.",
+      "default": 8,
+      "minimum": -12,
+      "maximum": 14
+    },
+    "backup": {
+      "type": "object",
+      "description": "Automatic database backup configuration",
+      "properties": {
+        "enable": {
+          "type": "boolean",
+          "description": "Enable scheduled database backups",
+          "default": false
+        },
+        "cron": {
+          "type": "string",
+          "description": "5-part cron expression controlling backup schedule (min hour dom month dow). Evaluated in the configured timezone.",
+          "default": "0 2 * * *"
+        },
+        "keepDays": {
+          "type": "integer",
+          "description": "Number of days to retain backup snapshots. Backups older than this will be deleted automatically after each run. Set to 0 to keep all backups forever.",
+          "default": 30,
+          "minimum": 0
+        }
+      }
+    },
+    "env": {
+      "type": "object",
+      "description": "Extra environment variables injected into shell / python subprocesses. Values may reference existing env vars using $VAR or ${VAR} syntax, e.g. PATH: \"/opt/homebrew/bin:$PATH\".",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "reportUrl": {
+      "type": "string",
+      "description": "Optional URL to receive system-level error reports via GET request. When set, uncaught exceptions and unhandled rejections are sent as: GET <reportUrl>?data=<url-encoded JSON>",
+      "format": "uri"
+    },
+    "viewMode": {
+      "type": "string",
+      "enum": ["", "webComponent", "client"],
+      "description": "View mode: '' for standalone web app, 'webComponent' for web-component embedded mode, 'client' for Electron client mode. When 'webComponent', API endpoints for security, API tokens, proxy, upload settings are disabled.",
+      "default": ""
+    }
+  },
+  "required": [
+    "port",
+    "database",
+    "auth",
+    "jwt",
+    "modelProviders",
+    "model"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "name": "clawgoal",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "ClawGoal Monorepo - UI and Backend Services",
+  "scripts": {
+    "build": "pnpm --stream build:packages",
+    "build:packages": "pnpm --filter @clawgoal/backend-claw build && pnpm --filter @clawgoal/ui build && pnpm --filter @clawgoal/backend build",
+    "build:minify": "pnpm --stream build:packages:minify",
+    "build:packages:minify": "pnpm --filter @clawgoal/backend-claw build && pnpm --filter @clawgoal/ui build && pnpm --filter @clawgoal/backend build:minify",
+    "clean": "pnpm -r exec rm -rf node_modules dist",
+    "dev": "pnpm --parallel --stream dev",
+    "update-version": "node scripts/update-version.cjs",
+    "check": "bash scripts/check.sh"
+  },
+  "keywords": [
+    "monorepo",
+    "vue3",
+    "nodejs",
+    "express"
+  ],
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.8.0",
+    "globals": "^17.4.0",
+    "ignore": "^7.0.5",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.57.2",
+    "vue-tsc": "^2.2.0"
+  }
+}

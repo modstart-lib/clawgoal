@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.env
+.DS_Store
+
+# 构建时自动生成，勿手动编辑
+src/generated/bundledRoles.ts

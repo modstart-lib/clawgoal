@@ -1,0 +1,40 @@
+# 依赖目录
+node_modules/
+.pnpm-store/
+
+# 构建产物
+dist/
+.output/
+
+# 环境变量（敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 日志
+logs/
+*.log
+*.bun-build
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 运行时数据
+/packages/backend/data/
+/data/
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+
+# 截图相关
+/storage/screenshot-last/image/
+/storage/screenshot/image/
+
+# 缓存
+.cache/
+.turbo/
+**/generated/*.ts
+_temp/
+Thumbs.db

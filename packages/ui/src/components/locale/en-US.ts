@@ -1,0 +1,15 @@
+export default {
+  'nav.collapseMenu': 'Collapse menu',
+  'nav.expandMenu': 'Expand menu',
+  'listerTop.total': '{n} total',
+  'listerTop.refresh': 'Refresh',
+  'listerTop.filter': 'Filter',
+  'mainLayout.loggedIn': 'Logged in',
+  'mainLayout.clickToLogin': 'Click to login',
+  'mainLayout.feedback': 'Feedback',
+  'mainLayout.setting': 'Settings',
+  'mainLayout.wsConnected': 'Connected',
+  'mainLayout.wsConnecting': 'Connecting',
+  'mainLayout.wsDisconnected': 'Disconnected',
+  'mainLayout.communityEdition': 'Community Edition',
+} as const
