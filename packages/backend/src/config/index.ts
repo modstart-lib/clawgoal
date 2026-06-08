@@ -681,13 +681,14 @@ function loadRawConfig(): RawConfig {
 function _buildConfig() {
   const raw = loadRawConfig()
 
-  // Resolve data sub-paths: config.dataPath takes priority, otherwise use resolveDataDir()
+  // Priority: DATA_PATH env var (from Electron/client.json) > config.yaml dataPath > resolveDataDir()
+  const envDataPath = process.env.DATA_PATH
   const rawDataPath = raw.dataPath
-  const dataPath = rawDataPath
-    ? path.isAbsolute(rawDataPath)
-      ? rawDataPath
-      : resolvePath(expandTilde(rawDataPath))
-    : resolveDataDir()
+  const dataPath = envDataPath
+    ? path.isAbsolute(envDataPath) ? envDataPath : path.resolve(process.cwd(), envDataPath)
+    : rawDataPath
+      ? path.isAbsolute(rawDataPath) ? rawDataPath : resolvePath(expandTilde(rawDataPath))
+      : resolveDataDir()
   const resolveDataSubPath = (subPath: string) => {
     const base = path.isAbsolute(dataPath) ? dataPath : resolvePath(dataPath)
     return path.join(base, subPath)

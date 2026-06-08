@@ -19,7 +19,7 @@
     }
   ],
   "win": {
-    "icon": "build/windows/icon.ico",
+    "icon": "windows/icon.ico",
     "target": ["nsis"],
     "artifactName": "${productName}-App-win-${arch}-${version}.${ext}"
   },
@@ -30,7 +30,7 @@
     "allowToChangeInstallationDirectory": true
   },
   "mac": {
-    "icon": "build/iconfile.icns",
+    "icon": "iconfile.icns",
     "target": ["dmg"],
     "artifactName": "${productName}-App-mac-${arch}-${version}.${ext}",
     "category": "public.app-category.productivity",
@@ -40,7 +40,7 @@
     "entitlementsInherit": "resources/entitlements.mac.plist"
   },
   "linux": {
-    "icon": "build/appicon.png",
+    "icon": "appicon.png",
     "category": "Utility",
     "target": ["AppImage", "deb"],
     "artifactName": "${productName}-App-linux-${arch}-${version}.${ext}"
