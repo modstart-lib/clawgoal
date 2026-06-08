@@ -313,55 +313,6 @@ jobs:
           $rn = Get-Random -Minimum 10000 -Maximum 99999
           "BUILD_ID=${plat}-${ts}-${rn}" >> $env:GITHUB_ENV
 
-      - name: 'Build frontend & backend-claw'
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
-          BUILD_HIDE_PRO: ${{ secrets.BUILD_HIDE_PRO }}
-          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
-        run: pnpm --filter @clawgoal/backend-claw build && pnpm --filter @clawgoal/ui build
-
-      - name: Upload Sourcemaps
-        if: runner.os != 'Windows'
-        env:
-          GROW_URL: ${{ secrets.GROW_URL }}
-          GROW_APP_NAME: ${{ github.event.repository.name }}
-          GROW_ADMIN_API_TOKEN: ${{ secrets.GROW_ADMIN_API_TOKEN }}
-        run: |
-          echo "Uploading sourcemaps ..."
-          find packages/ui/dist -name '*.map' | while read f; do
-            echo "  uploading $f"
-            RESP=$(curl -s -X POST "${GROW_URL}/api/admin/grow/buildUpload" \
-              -H "Authorization: Bearer ${GROW_ADMIN_API_TOKEN}" \
-              -F "appName=${GROW_APP_NAME}" \
-              -F "buildId=${BUILD_ID}" \
-              -F "file=@${f}" \
-              -F "name=${f}")
-            echo "  done"
-          done
-          echo "Sourcemap upload done."
-
-      - name: Upload Sourcemaps (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          GROW_URL: ${{ secrets.GROW_URL }}
-          GROW_APP_NAME: ${{ github.event.repository.name }}
-          GROW_ADMIN_API_TOKEN: ${{ secrets.GROW_ADMIN_API_TOKEN }}
-        run: |
-          echo "Uploading sourcemaps ..."
-          Get-ChildItem -Path packages/ui/dist -Filter *.map -Recurse | ForEach-Object {
-            $f = $_.FullName
-            echo "  uploading $f"
-            $resp = curl -s -X POST "${env:GROW_URL}/api/admin/grow/buildUpload" `
-              -H "Authorization: Bearer ${env:GROW_ADMIN_API_TOKEN}" `
-              -F "appName=${env:GROW_APP_NAME}" `
-              -F "buildId=${env:BUILD_ID}" `
-              -F "file=@${f}" `
-              -F "name=${f}"
-            echo "  done"
-          }
-          echo "Sourcemap upload done."
-
       - name: Download Server Binary
         uses: actions/download-artifact@v6
         with:
