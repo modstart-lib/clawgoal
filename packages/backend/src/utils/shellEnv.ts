@@ -14,6 +14,7 @@
 import { config } from '../config'
 import { paramDb } from '../storage/store/userParam'
 import { getParam } from './userParam'
+import { safeJsonParse } from './json.js'
 
 /** PATH 配置的 option 名称 */
 export const SHELL_PATH_LIST_OPTION = 'ShellPathList'
@@ -32,7 +33,7 @@ export async function getShellPathList(): Promise<string[]> {
       SHELL_PATH_LIST_OPTION,
       '[]'
     )
-    const parsed = JSON.parse(raw)
+    const parsed = safeJsonParse(raw, [], 'shellEnv')
     if (!Array.isArray(parsed)) return []
     return (parsed as unknown[])
       .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)

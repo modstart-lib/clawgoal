@@ -10,6 +10,7 @@ import { spawnSync } from 'node:child_process'
 import { writeFileSync, rmSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { generateTempFile } from '../../../backend/src/utils/utils.js'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { clawDb } from '../storage/store/index.js'
 import { clawEventBus } from '../kernel/eventBus.js'
 import { createLogger } from '../kernel/logger.js'
@@ -191,7 +192,7 @@ export async function auditCodespaceAcceptTool(
     diffStat?: string
   } =
     typeof audit.content === 'string'
-      ? JSON.parse(audit.content)
+      ? safeJsonParse(audit.content, {} as any, 'audit.content')
       : audit.content
   const diffs = content.diffs ?? {}
   const summary = content.summary ?? 'apply changes'
@@ -469,7 +470,11 @@ export async function auditCodespaceChangeTool(
 
   const content: { diffs: Record<string, string | null> } =
     typeof audit.content === 'string'
-      ? JSON.parse(audit.content)
+      ? safeJsonParse(
+          audit.content,
+          {} as { diffs: Record<string, string | null> },
+          'audit.content'
+        )
       : audit.content
   const diffs = content.diffs ?? {}
 

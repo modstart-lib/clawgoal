@@ -17,6 +17,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
+import { safeJsonParse } from '../src/utils/json.js'
 import { dirname, join, relative } from 'path'
 
 interface RouteDoc {
@@ -130,7 +131,7 @@ function parseRouteDocs(content: string, filePath: string): RouteDoc[] {
     let returnExample: unknown = null
     if (returnMatch) {
       try {
-        returnExample = JSON.parse(returnMatch[1].trim())
+        returnExample = safeJsonParse(returnMatch[1].trim(), {}, 'genApiDoc.returnExample')
       } catch {
         returnExample = returnMatch[1].trim()
       }

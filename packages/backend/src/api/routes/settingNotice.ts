@@ -383,9 +383,12 @@ async function pollTelegramForChatId(
 
           if (chatId != null) {
             const { wsService } = await import('../../websocket/index.js')
-            wsService.broadcastSystemEvent('system:telegramBot:chatIdReceived', {
-              chatId: String(chatId),
-            })
+            wsService.broadcastSystemEvent(
+              'system:telegramBot:chatIdReceived',
+              {
+                chatId: String(chatId),
+              }
+            )
             // 发送确认消息到 Telegram
             fetchJson(
               `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&parse_mode=HTML&text=${encodeURIComponent(`✅ <b>通知渠道绑定成功！</b>\n\n💬 Chat ID：<code>${chatId}</code>\n\n系统消息与通知将发送到此对话。`)}`,

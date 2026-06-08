@@ -1,9 +1,43 @@
+import { logger } from './logger'
+
 export function jsonStringify(value: unknown, space?: number): string {
   return JSON.stringify(value, null, space)
 }
 
-export function jsonParse<T = unknown>(text: string): T {
-  return JSON.parse(text) as T
+/**
+ * Safe JSON parse — returns `defaultVal` when the input is falsy or not valid JSON.
+ * Logs a warning on parse failure so dirty data can be traced.
+ * `biz` identifies the calling context (e.g. "project.meta", "event.meta") to quickly locate issues.
+ * Use this in store/ORM layers where database fields may contain dirty data.
+ */
+export function safeJsonParse<T = any>(
+  text: string | null | undefined,
+  defaultVal: T,
+  biz: string = 'unknown'
+): T {
+  if (!text) return defaultVal
+  try {
+    return JSON.parse(text) as T
+  } catch (err) {
+    const sample = text.length > 200 ? text.slice(0, 200) + '...' : text
+    logger.warn(
+      { err, biz },
+      `safeJsonParse[${biz}]: invalid JSON value (len=${text.length}, sample="${sample}"), returning default`
+    )
+    return defaultVal
+  }
+}
+
+/**
+ * JSON parse with type cast — delegates to safeJsonParse internally.
+ * Returns `defaultVal` (default `null`) on failure.
+ */
+export function jsonParse<T = unknown>(
+  text: string | null | undefined,
+  defaultVal: T | null = null,
+  biz: string = 'jsonParse'
+): T | null {
+  return safeJsonParse<T | null>(text, defaultVal, biz)
 }
 
 /**

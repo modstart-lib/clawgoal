@@ -169,7 +169,8 @@ router.post(
 router.post(
   '/claw/project/add',
   apiHandler(async (req, res) => {
-    const { title, description, status, color, logo, startAt, dueAt, meta } = req.body
+    const { title, description, status, color, logo, startAt, dueAt, meta } =
+      req.body
     const { t } = useI18n(req)
     if (!title?.trim()) {
       return error(
@@ -227,8 +228,17 @@ router.post(
 router.post(
   '/claw/project/edit',
   apiHandler(async (req, res) => {
-    const { id, title, description, status, color, logo, startAt, dueAt, meta } =
-      req.body
+    const {
+      id,
+      title,
+      description,
+      status,
+      color,
+      logo,
+      startAt,
+      dueAt,
+      meta,
+    } = req.body
     const { t } = useI18n(req)
     if (!id) return error(res, ResponseCodes.DEFAULT_ERROR, t('idRequired'))
 

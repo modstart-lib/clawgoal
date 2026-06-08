@@ -11,6 +11,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import type { Tool as McpSdkTool } from '@modelcontextprotocol/sdk/types.js'
 import { config } from '../../../backend/src/config/index.js'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { clawEventBus } from '../kernel/eventBus.js'
 import { createLogger } from '../kernel/logger.js'
 import { clawDb } from '../storage/store/index.js'
@@ -211,12 +212,9 @@ class McpManager {
   // ─── Private helpers ───────────────────────────────────────────────────────
 
   private _buildTransport(row: McpRow) {
-    let cfg: Record<string, unknown>
-    try {
-      cfg = row.config ? JSON.parse(row.config) : {}
-    } catch {
-      cfg = {}
-    }
+    const cfg: Record<string, unknown> = row.config
+      ? safeJsonParse(row.config, {}, 'mcpManager.config')
+      : {}
 
     if (row.type === 'stdio') {
       const c = cfg as unknown as StdioMcpConfig

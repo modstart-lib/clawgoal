@@ -1,5 +1,6 @@
 import type { Database, Statement } from 'bun:sqlite'
 import { makeSqlHelper } from '../../../../../backend/src/storage/sqlite.js'
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 import type { ClawTaskRow } from '../../store/task.js'
 
 export class SqliteClawTaskStore {
@@ -256,10 +257,7 @@ export class SqliteClawTaskStore {
   appendTaskLog(id: number, entry: string): void {
     const row = this.findTaskById(id)
     if (!row) return
-    let logs: string[] = []
-    try {
-      logs = JSON.parse(row.logs || '[]')
-    } catch {}
+    let logs: string[] = safeJsonParse(row.logs, [], 'task.logs')
     logs.push(entry)
     if (logs.length > 500) logs = logs.slice(-500)
     this.sql(
@@ -366,14 +364,10 @@ export class SqliteClawTaskStore {
    * 解析任务的 needs 字段为数字数组
    */
   private parseNeeds(needsStr: string): string[] {
-    try {
-      const parsed = JSON.parse(needsStr || '[]')
-      return Array.isArray(parsed)
-        ? parsed.map(String).filter((s) => Number(s) > 0)
-        : []
-    } catch {
-      return []
-    }
+    const parsed = safeJsonParse(needsStr, [], 'task.needs')
+    return Array.isArray(parsed)
+      ? parsed.map(String).filter((s) => Number(s) > 0)
+      : []
   }
 
   /**

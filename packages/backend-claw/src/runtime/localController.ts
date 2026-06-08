@@ -2,6 +2,7 @@ import { discoverRunners } from '../connect/index.js'
 import { clawEventBus } from '../kernel/eventBus.js'
 import { createLogger } from '../kernel/logger.js'
 import { getParam, setParam } from '../../../backend/src/utils/userParam.js'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import type { RunnerInfo, RuntimeRow } from '../storage/store/index.js'
 import type { IRuntimeController, SendRunRunnerOpts } from './controller.js'
 import { spawnSync } from 'child_process'
@@ -96,11 +97,7 @@ class LocalRuntimeController implements IRuntimeController {
   /** 返回已缓存的 runner 列表（含用户 enable 状态） */
   async getRunners(tenantId: number, userId: number): Promise<RunnerInfo[]> {
     const row = await this.getRuntimeRow(tenantId, userId)
-    try {
-      return JSON.parse(row.runners ?? '[]')
-    } catch {
-      return []
-    }
+    return safeJsonParse(row.runners, [], 'localController.runners')
   }
 
   // ── private ──────────────────────────────────────────────────────────────
@@ -111,11 +108,7 @@ class LocalRuntimeController implements IRuntimeController {
   ): Promise<Record<string, boolean>> {
     const raw = await getParam(tenantId, userId, LOCAL_RUNTIME_PARAM_KEY, '')
     if (!raw) return {}
-    try {
-      return JSON.parse(raw)
-    } catch {
-      return {}
-    }
+    return safeJsonParse(raw, {}, 'localController.runners')
   }
 
   private async _runAsync(

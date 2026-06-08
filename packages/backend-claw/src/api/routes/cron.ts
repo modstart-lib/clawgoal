@@ -13,6 +13,7 @@ import { Router } from 'express'
 import type { AuthRequest } from '../../../../backend/src/api/middlewares/auth.js'
 import { ResponseCodes } from '../../../../backend/src/api/types/constants'
 import { apiHandler } from '../../../../backend/src/utils/api'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 import { error, success } from '../../../../backend/src/utils/response'
 import type { CronConfig } from '../../cron/index.js'
 import { cronManager, type CronTask } from '../../cron/index.js'
@@ -26,13 +27,9 @@ const router: Router = Router()
 
 /** Parse action/script from stored prompt JSON */
 function parsePrompt(prompt: string): { action: string; script: string } {
-  try {
-    const parsed = JSON.parse(prompt)
-    if (parsed && typeof parsed.action === 'string') {
-      return { action: parsed.action, script: parsed.script || '' }
-    }
-  } catch {
-    // not JSON — treat as custom script
+  const parsed = safeJsonParse(prompt, null, 'cron.prompt')
+  if (parsed && typeof parsed.action === 'string') {
+    return { action: parsed.action, script: parsed.script || '' }
   }
   return { action: 'custom', script: prompt }
 }

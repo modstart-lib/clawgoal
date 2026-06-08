@@ -163,7 +163,13 @@ async function noteBatchAdd(args: {
 // ─── note_batch_edit ──────────────────────────────────────────────────
 
 async function noteBatchEdit(args: {
-  notes: Array<{ id: number; title?: string; biz?: string; type?: string; content?: string }>
+  notes: Array<{
+    id: number
+    title?: string
+    biz?: string
+    type?: string
+    content?: string
+  }>
 }): Promise<ToolResult> {
   try {
     if (!Array.isArray(args.notes) || args.notes.length === 0) {

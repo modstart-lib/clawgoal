@@ -3,6 +3,22 @@
  */
 
 /**
+ * Safe JSON parse — returns `defaultVal` when the input is falsy or not valid JSON.
+ * Use this for all JSON.parse calls to avoid unhandled exceptions.
+ */
+export function safeJsonParse<T = any>(
+  text: string | null | undefined,
+  defaultVal: T
+): T {
+  if (!text) return defaultVal
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    return defaultVal
+  }
+}
+
+/**
  * Copy text to clipboard (with fallback for older browsers)
  * @param toast - success message to show, pass false to suppress
  */

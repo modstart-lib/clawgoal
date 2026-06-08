@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { safeJsonParse } from '@/utils/utils'
 
 const props = defineProps<{
   meta: string | Record<string, unknown> | null | undefined
@@ -15,7 +16,7 @@ const entries = computed<Array<{ key: string; value: unknown }>>(() => {
   let obj: Record<string, unknown>
   if (typeof props.meta === 'string') {
     try {
-      obj = JSON.parse(props.meta)
+      obj = safeJsonParse(props.meta, {})
     } catch {
       return []
     }

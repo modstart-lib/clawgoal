@@ -2,7 +2,7 @@
 import { type ModelLogRecord } from '@/api/modelLog'
 import { shareUserTempLink } from '@/api/userTempFile'
 import JSONViewer from '@/components/JSONViewer.vue'
-import { copyText } from '@/utils/utils'
+import { copyText, safeJsonParse } from '@/utils/utils'
 import {
   Braces,
   Calendar,
@@ -56,11 +56,7 @@ function openToolsModal(req: any, e: Event) {
 
 function parseModelRequest(str: string | null) {
   if (!str) return null
-  try {
-    return JSON.parse(str)
-  } catch {
-    return null
-  }
+  return safeJsonParse(str, [])
 }
 
 function getSystemPrompt(req: any) {
@@ -83,45 +79,37 @@ function getTools(req: any): string[] {
 
 function getToolCalls(resStr: string | null) {
   if (!resStr) return null
-  try {
-    const res = JSON.parse(resStr)
-    if (res.tool_calls && res.tool_calls.length > 0) {
-      return res.tool_calls.map((tc: any) => ({
-        name: tc.function?.name || tc.name,
-        arguments: tc.function?.arguments || tc.args,
-      }))
-    }
-    const msg = res.choices?.[0]?.message
-    if (msg?.tool_calls) {
-      return msg.tool_calls.map((tc: any) => ({
-        name: tc.function?.name,
-        arguments: tc.function?.arguments,
-      }))
-    }
-  } catch {
-    return null
+  const res = safeJsonParse(resStr, {} as any)
+  if (res.tool_calls && res.tool_calls.length > 0) {
+    return res.tool_calls.map((tc: any) => ({
+      name: tc.function?.name || tc.name,
+      arguments: tc.function?.arguments || tc.args,
+    }))
+  }
+  const msg = res.choices?.[0]?.message
+  if (msg?.tool_calls) {
+    return msg.tool_calls.map((tc: any) => ({
+      name: tc.function?.name,
+      arguments: tc.function?.arguments,
+    }))
   }
   return null
 }
 
 function getResponseText(resStr: string | null): string | null {
   if (!resStr) return null
-  try {
-    const res = JSON.parse(resStr)
-    if ('content' in res) {
-      if (typeof res.content === 'string') return res.content || null
-      if (Array.isArray(res.content)) {
-        const texts = res.content
-          .filter((c: any) => c.type === 'text')
-          .map((c: any) => c.text)
-          .join('')
-        return texts || null
-      }
+  const res = safeJsonParse(resStr, {} as any)
+  if ('content' in res) {
+    if (typeof res.content === 'string') return res.content || null
+    if (Array.isArray(res.content)) {
+      const texts = res.content
+        .filter((c: any) => c.type === 'text')
+        .map((c: any) => c.text)
+        .join('')
+      return texts || null
     }
-    return res.choices?.[0]?.message?.content ?? null
-  } catch {
-    return null
   }
+  return res.choices?.[0]?.message?.content ?? null
 }
 
 function getLastRequestMessage(
@@ -165,11 +153,7 @@ async function handleShare() {
     request: parseModelRequest(props.record.requestBody),
     response: props.record.responseBody
       ? (() => {
-          try {
-            return JSON.parse(props.record.responseBody)
-          } catch {
-            return props.record.responseBody
-          }
+          return safeJsonParse(props.record.responseBody, {} as any)
         })()
       : null,
   }

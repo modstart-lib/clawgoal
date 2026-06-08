@@ -14,6 +14,7 @@ import crypto from 'crypto'
 import { getUserAgent } from '../../../../backend/src/utils/utils.js'
 import { getByUserId } from '../../../../backend/src/utils/tenant.js'
 import { config } from '../../../../backend/src/config/index.js'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 import { clawEventBus } from '../../kernel/eventBus.js'
 import { createLogger } from '../../kernel/logger.js'
 import { clawDb } from '../../storage/store/index.js'
@@ -37,7 +38,11 @@ export class SlackChannelAdapter extends ChannelAdapterBase {
 
   constructor(row: ChannelRow, defaultAgentId: number) {
     const cfg = row.config
-      ? (JSON.parse(row.config) as Record<string, string>)
+      ? safeJsonParse(
+          row.config,
+          {} as Record<string, string>,
+          'channel.config'
+        )
       : {}
     if (!cfg['botToken']) {
       throw new Error(

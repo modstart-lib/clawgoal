@@ -212,7 +212,8 @@ async function startServer() {
     }
 
     // 构建时 sourcemap 状态（见 scripts/build.ts）
-    const { BUILD_SOURCEMAP_ENABLED } = await import('./generated/buildSourcemap.js')
+    const { BUILD_SOURCEMAP_ENABLED } =
+      await import('./generated/buildSourcemap.js')
     if (BUILD_SOURCEMAP_ENABLED) {
       logger.info('sourcemap enabled')
     }

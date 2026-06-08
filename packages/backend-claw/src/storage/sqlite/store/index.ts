@@ -771,10 +771,7 @@ class SqliteClawStoreImpl implements IClawStore {
   findEventsByProjectId(projectId: number): EventRow[] {
     return this.event.findEventsByProjectId(projectId)
   }
-  findEventsByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): EventRow[] {
+  findEventsByProjectIdAndBiz(projectId: number, biz: string): EventRow[] {
     return this.event.findEventsByProjectIdAndBiz(projectId, biz)
   }
   findEventsByProjectIdPaginated(
@@ -927,10 +924,7 @@ class SqliteClawStoreImpl implements IClawStore {
 
   // ─── Project Note ─────────────────────────────────────────────────────────
 
-  findNotesByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): NoteRow[] {
+  findNotesByProjectIdAndBiz(projectId: number, biz: string): NoteRow[] {
     return this.note.findNotesByProjectIdAndBiz(projectId, biz)
   }
   findNotesByProjectId(
@@ -980,10 +974,7 @@ class SqliteClawStoreImpl implements IClawStore {
 
   // ─── Project Wiki ──────────────────────────────────────────────────────────
 
-  findWikisByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): WikiRow[] {
+  findWikisByProjectIdAndBiz(projectId: number, biz: string): WikiRow[] {
     return this.wiki.findWikisByProjectIdAndBiz(projectId, biz)
   }
   findWikisByProjectId(

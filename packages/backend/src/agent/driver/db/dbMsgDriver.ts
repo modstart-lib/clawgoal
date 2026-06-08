@@ -8,6 +8,7 @@ import { logger } from '../../../utils/logger.js'
 import type { AgentExecutor } from '../../agentExecutor.js'
 import type { MessageItem } from '../../types.js'
 import { AbstractMsgDriver } from '../msgDriver.js'
+import { safeJsonParse } from '../../../utils/json.js'
 
 export class DbMsgDriver extends AbstractMsgDriver {
   constructor(executor: AgentExecutor) {
@@ -55,7 +56,11 @@ export class DbMsgDriver extends AbstractMsgDriver {
   protected async findMsg(id: number): Promise<Partial<MessageItem> | null> {
     const record = await agentTaskDb.findAgentTaskMsgById(id)
     if (!record) return null
-    return JSON.parse(record.content) as Partial<MessageItem>
+    return safeJsonParse(
+      record.content,
+      {} as Partial<MessageItem>,
+      'dbMsg.findMsg'
+    ) as Partial<MessageItem>
   }
 
   /**
@@ -107,7 +112,7 @@ export class DbMsgDriver extends AbstractMsgDriver {
       maxId > 0 ? { maxId: Number(maxId), limit: 100 } : { limit: 100 }
     )
     return records.map((m) => {
-      const msg = JSON.parse(m.content)
+      const msg = safeJsonParse(m.content, {}, 'dbMsgMsg.queryHistory')
       return { ...msg, id: m.id.toString() }
     })
   }

@@ -685,9 +685,13 @@ function _buildConfig() {
   const envDataPath = process.env.DATA_PATH
   const rawDataPath = raw.dataPath
   const dataPath = envDataPath
-    ? path.isAbsolute(envDataPath) ? envDataPath : path.resolve(process.cwd(), envDataPath)
+    ? path.isAbsolute(envDataPath)
+      ? envDataPath
+      : path.resolve(process.cwd(), envDataPath)
     : rawDataPath
-      ? path.isAbsolute(rawDataPath) ? rawDataPath : resolvePath(expandTilde(rawDataPath))
+      ? path.isAbsolute(rawDataPath)
+        ? rawDataPath
+        : resolvePath(expandTilde(rawDataPath))
       : resolveDataDir()
   const resolveDataSubPath = (subPath: string) => {
     const base = path.isAbsolute(dataPath) ? dataPath : resolvePath(dataPath)
@@ -717,9 +721,10 @@ function _buildConfig() {
   }
   // Ensure 'default' always exists (but allow empty when no providers or model config)
   if (!llmConfigs.default) {
-    llmConfigs.default = modelProviders.length > 0
-      ? parseModelConfigList(undefined, modelProviders)
-      : []
+    llmConfigs.default =
+      modelProviders.length > 0
+        ? parseModelConfigList(undefined, modelProviders)
+        : []
   }
 
   // Set process.env.TZ so all native Date operations use the configured offset.
@@ -877,7 +882,9 @@ function _buildConfig() {
      * View mode: 'webComponent' (web-component embedded), 'client' (Electron client), '' (standalone web app).
      * Backend endpoints for security, API tokens, proxy, and upload are disabled in 'webComponent' mode.
      */
-    viewMode: (raw.viewMode as string) || (process.env.IS_CLIENT === '1' ? 'client' : ''),
+    viewMode:
+      (raw.viewMode as string) ||
+      (process.env.IS_CLIENT === '1' ? 'client' : ''),
     /** When true, all debug-level logs are emitted. Defaults to false. */
     debug: raw.debug ?? false,
     /** Runtime environment configurations (Python, etc.) */

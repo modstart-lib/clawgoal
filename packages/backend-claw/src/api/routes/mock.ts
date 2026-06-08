@@ -13,6 +13,7 @@ import type { AuthRequest } from '../../../../backend/src/api/middlewares/auth.j
 import { apiHandler } from '../../../../backend/src/utils/api'
 import { ResponseCodes } from '../../../../backend/src/api/types/constants'
 import { error, success } from '../../../../backend/src/utils/response'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 import { agentManager } from '../../agent/index.js'
 import { clawMessage } from '../../types/index.js'
 import { runAgentMessage } from '../../kernel/agent.js'
@@ -251,13 +252,7 @@ function collectSteps(
     )
     const wf = workflows[0]
     if (wf) {
-      const wfState = (() => {
-        try {
-          return JSON.parse(wf.state)
-        } catch {
-          return {}
-        }
-      })()
+      const wfState = safeJsonParse(wf.state, {}, 'mock.wfState')
       const wfDuration =
         wf.end_at && wf.start_at
           ? new Date(wf.end_at).getTime() - new Date(wf.start_at).getTime()
@@ -270,13 +265,7 @@ function collectSteps(
       }
       const nodeRows = clawDb.listAgentWorkflowNodes(wf.id)
       steps.nodes = nodeRows.map((n) => {
-        const ns = (() => {
-          try {
-            return JSON.parse(n.state)
-          } catch {
-            return {}
-          }
-        })()
+        const ns = safeJsonParse(n.state, {}, 'mock.nodeState')
         const nd =
           n.end_at && n.start_at
             ? new Date(n.end_at).getTime() - new Date(n.start_at).getTime()
@@ -294,11 +283,7 @@ function collectSteps(
     }
     const rawRows = clawDb.listAgentMessageRawBySession(sessionId, 200)
     steps.rawMessages = rawRows.map((r) => {
-      try {
-        return JSON.parse(r.message)
-      } catch {
-        return { raw: r.message }
-      }
+      return safeJsonParse(r.message, { raw: r.message }, 'mock.rawMessage')
     })
     try {
       const audits = clawDb.listAgentAudits(tenantId, userId)

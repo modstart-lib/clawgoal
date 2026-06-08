@@ -434,10 +434,7 @@ export interface IClawStore {
   // ─── Project Event ────────────────────────────────────────────────────
 
   findEventsByProjectId(projectId: number): EventRow[]
-  findEventsByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): EventRow[]
+  findEventsByProjectIdAndBiz(projectId: number, biz: string): EventRow[]
   findEventsByProjectIdPaginated(
     projectId: number,
     options?: {
@@ -528,10 +525,7 @@ export interface IClawStore {
 
   // ─── Project Note ─────────────────────────────────────────────────────────
 
-  findNotesByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): NoteRow[]
+  findNotesByProjectIdAndBiz(projectId: number, biz: string): NoteRow[]
   findNotesByProjectId(
     projectId: number,
     options?: { type?: string }
@@ -559,10 +553,7 @@ export interface IClawStore {
 
   // ─── Project Wiki ──────────────────────────────────────────────────────────
 
-  findWikisByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): WikiRow[]
+  findWikisByProjectIdAndBiz(projectId: number, biz: string): WikiRow[]
   findWikisByProjectId(
     projectId: number,
     options?: { status?: string }

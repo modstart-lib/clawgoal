@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useTheme } from '@/composables/theme.ts'
 import { computed } from 'vue'
+import { safeJsonParse } from '@/utils/utils'
 import { JsonViewer } from 'vue3-json-viewer'
 import 'vue3-json-viewer/dist/vue3-json-viewer.css'
 
@@ -28,7 +29,7 @@ const parsed = computed(() => {
   if (isEmpty.value) return null
   if (typeof props.value === 'string') {
     try {
-      return JSON.parse(props.value)
+      return safeJsonParse(props.value, {})
     } catch {
       return props.value
     }

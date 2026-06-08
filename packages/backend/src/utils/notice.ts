@@ -8,6 +8,7 @@ import { AppConfig } from '../config.js'
 import type { NoticeRow } from '../storage/store/notice.js'
 import { noticeDb } from '../storage/store/notice.js'
 import { logger } from './logger.js'
+import { safeJsonParse } from './json.js'
 
 // ─── Markdown 工具函数 ────────────────────────────────────────────────────────
 
@@ -236,7 +237,7 @@ export async function proxyFetch(
     ok: status >= 200 && status < 400,
     status,
     async json() {
-      return JSON.parse(responseBody)
+      return safeJsonParse(responseBody, null, 'notice.httpResponse')
     },
     async text() {
       return responseBody
@@ -782,7 +783,7 @@ export async function broadcastNoticeToDefault(
   const idsRaw = await getSetting('default_notice_ids', '[]')
   let ids: number[] = []
   try {
-    ids = JSON.parse(idsRaw)
+    ids = safeJsonParse(idsRaw, [], 'notice.ids')
   } catch {
     /* 留空时发所有 */
   }

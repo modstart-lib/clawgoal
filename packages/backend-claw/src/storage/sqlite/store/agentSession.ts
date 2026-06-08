@@ -1,5 +1,6 @@
 import type { Database, Statement } from 'bun:sqlite'
 import { makeSqlHelper } from '../../../../../backend/src/storage/sqlite.js'
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 import type {
   AgentSessionRow,
   InsertAgentSessionInput,
@@ -96,11 +97,11 @@ export class SqliteAgentSessionStore {
       'SELECT data FROM claw_agent_session WHERE id = ?'
     ).get(id) as { data: string } | undefined
     if (!row) return {}
-    try {
-      return JSON.parse(row.data) as Record<string, unknown>
-    } catch {
-      return {}
-    }
+    return safeJsonParse(
+      row.data,
+      {} as Record<string, unknown>,
+      'agentSession.data'
+    )
   }
 
   deleteChatSessionsByAgent(
@@ -129,11 +130,11 @@ export class SqliteAgentSessionStore {
       'SELECT agentic_data FROM claw_agent_session WHERE id = ? AND agentic_data IS NOT NULL'
     ).get(sessionId) as { agentic_data: string } | undefined
     if (!row) return undefined
-    try {
-      return JSON.parse(row.agentic_data) as Record<string, unknown>
-    } catch {
-      return undefined
-    }
+    return safeJsonParse(
+      row.agentic_data,
+      undefined,
+      'agentSession.agenticData'
+    ) as Record<string, unknown> | undefined
   }
 
   clearAgenticData(sessionId: number): void {
@@ -155,11 +156,9 @@ export class SqliteAgentSessionStore {
       'SELECT history FROM claw_agent_session WHERE id = ? AND history IS NOT NULL'
     ).get(sessionId) as { history: string } | undefined
     if (!row) return undefined
-    try {
-      return JSON.parse(row.history) as unknown[]
-    } catch {
-      return undefined
-    }
+    return safeJsonParse(row.history, undefined, 'agentSession.history') as
+      | unknown[]
+      | undefined
   }
 
   clearHistory(sessionId: number): void {

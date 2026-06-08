@@ -18,6 +18,7 @@
  *   restorer  → 切回开发分支，让 runner 继续修改（跳过重新切分支）
  *   canceller → 切回主分支，保留开发分支
  */
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 
 import type { WorkflowFactory } from '../../../kernel/dynamicCode.js'
 import { existsSync, readFileSync } from 'node:fs'
@@ -449,7 +450,7 @@ export const merger: WorkflowFactory = (clawgoal) => ({
         diffStat?: string
       } =
         typeof audit.content === 'string'
-          ? JSON.parse(audit.content)
+          ? safeJsonParse(audit.content, {} as any, 'programer.auditContent')
           : audit.content
       const summary = content.summary ?? 'apply changes'
       const diffStat = content.diffStat ?? ''

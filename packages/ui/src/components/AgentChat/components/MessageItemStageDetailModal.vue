@@ -88,6 +88,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { safeJsonParse } from '@/utils/utils'
 import ScrollText from '~icons/lucide/scroll-text'
 import CodeViewer from '../../CodeViewer.vue'
 import MarkdownViewer from '../../MarkdownViewer.vue'
@@ -119,7 +120,7 @@ const logDurationMs = ref<number | undefined>()
 const detailParams = computed(() => {
   if (!props.meta?.detail) return null
   try {
-    const parsed = JSON.parse(props.meta.detail)
+    const parsed = safeJsonParse(props.meta.detail, {})
     return JSON.stringify(parsed, null, 2)
   } catch {
     return props.meta.detail

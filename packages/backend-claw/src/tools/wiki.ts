@@ -285,7 +285,12 @@ async function wikiGet(args: { id: number }): Promise<ToolResult> {
 async function wikiBatchAdd(
   args: {
     project_id: number
-    items: Array<{ title: string; biz?: string; content?: string; source_url?: string }>
+    items: Array<{
+      title: string
+      biz?: string
+      content?: string
+      source_url?: string
+    }>
   },
   context: ToolContext
 ): Promise<ToolResult> {

@@ -250,6 +250,7 @@ jobs:
   # ── Desktop app (Electron) ───────────────────────────────────────────────────
   build-app:
     name: Build App (${{ matrix.name }})
+    needs: [build-server]
     if: vars.BUILD_CLIENT_ENABLE != 'false'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -432,26 +433,30 @@ jobs:
           }
           echo "Sourcemap upload done."
 
-      - name: Build Server Binary for App (Linux/macOS)
-        if: runner.os == 'Linux' || runner.os == 'macOS'
-        working-directory: code
-        env:
-          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
-        run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            pnpm --filter @clawgoal/backend build mac-arm64
-            pnpm --filter @clawgoal/backend build mac-x64
-          else
-            pnpm --filter @clawgoal/backend build ${{ matrix.server_target }}
-          fi
+      - name: Download Server Binary
+        uses: actions/download-artifact@v6
+        with:
+          name: clawgoal-server-${{ matrix.name }}
+          path: code/packages/backend/dist/
 
-      - name: Build Server Binary for App (Windows)
-        if: runner.os == 'Windows'
+      - name: Debug: list downloaded server binary
+        if: runner.os != 'Windows'
         working-directory: code
-        shell: pwsh
-        env:
-          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
-        run: pnpm --filter @clawgoal/backend build ${{ matrix.server_target }}
+        run: ls -lh packages/backend/dist/clawgoal-* || echo "No server binary found"
+
+      - name: Download Server Binary (macOS x64, for dual-arch DMG)
+        if: runner.os == 'macOS'
+        uses: actions/download-artifact@v6
+        with:
+          name: clawgoal-server-mac-x64
+          path: code/packages/backend/dist/
+
+      - name: Copy x64 Server Binary to App Resources (macOS)
+        if: runner.os == 'macOS'
+        working-directory: code
+        run: |
+          mkdir -p client/backend
+          cp packages/backend/dist/clawgoal-mac-x64 client/backend/clawgoal-mac-x64
 
       - name: Build & Package Electron App
         working-directory: code/client
@@ -461,6 +466,21 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           ELECTRON_MIRROR: ${{ secrets.ELECTRON_MIRROR }}
         run: node scripts/build.cjs --full "../packages/backend/dist/${{ matrix.server_bin }}"
+
+      - name: Debug: list build output
+        if: runner.os != 'Windows'
+        working-directory: code/client
+        run: |
+          echo "=== build/ contents ==="
+          ls -lh build/ 2>/dev/null || echo "(empty)"
+          echo "=== AppImage ==="
+          ls -lh build/*.AppImage 2>/dev/null || echo "(none)"
+          echo "=== deb ==="
+          ls -lh build/*.deb 2>/dev/null || echo "(none)"
+          echo "=== dmg ==="
+          ls -lh build/*.dmg 2>/dev/null || echo "(none)"
+          echo "=== exe ==="
+          ls -lh build/*.exe 2>/dev/null || echo "(none)"
 
       - name: Release App (Linux)
         if: runner.os == 'Linux'

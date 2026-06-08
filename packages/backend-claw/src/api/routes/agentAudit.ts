@@ -12,6 +12,7 @@ import type { AuthRequest } from '../../../../backend/src/api/middlewares/auth.j
 import { ResponseCodes } from '../../../../backend/src/api/types/constants'
 import { apiHandler } from '../../../../backend/src/utils/api'
 import { error, success } from '../../../../backend/src/utils/response'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 import { clawEventBus } from '../../kernel/eventBus.js'
 import { clawDb } from '../../storage/store/index.js'
 import { clawMessage } from '../../types/index.js'
@@ -40,7 +41,11 @@ router.post(
     if (!audit)
       return error(res, ResponseCodes.DEFAULT_ERROR, t('claw.auditNotFound'))
 
-    const content: AgentAuditDiffContent = JSON.parse(audit.content)
+    const content: AgentAuditDiffContent = safeJsonParse(
+      audit.content,
+      {} as AgentAuditDiffContent,
+      'agentAudit.content'
+    )
 
     return success(res, {
       audit: {
@@ -137,7 +142,11 @@ router.post(
         t('claw.auditAlreadyHandled')
       )
 
-    const existingContent: AgentAuditDiffContent = JSON.parse(audit.content)
+    const existingContent: AgentAuditDiffContent = safeJsonParse(
+      audit.content,
+      {} as AgentAuditDiffContent,
+      'agentAudit.content'
+    )
     const updatedContent: AgentAuditDiffContent = {
       ...existingContent,
       review: {

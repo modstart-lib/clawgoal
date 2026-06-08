@@ -276,16 +276,16 @@ export default {
 
           // Intercept context_set sentinel — update state.context in-memory
           if (toolResult.success && toolOutput.startsWith(CONTEXT_SET_PREFIX)) {
-            try {
-              const payload = JSON.parse(
-                toolOutput.slice(CONTEXT_SET_PREFIX.length)
-              ) as { key: string; value: string }
+            const payload = safeJsonParse(
+              toolOutput.slice(CONTEXT_SET_PREFIX.length),
+              null,
+              'agentModel.payload'
+            ) as { key: string; value: string } | null
+            if (payload) {
               state.context[payload.key] = payload.value
               log.info(
                 `[AgentModel node=${param.node.id}] context_set: ${payload.key}=${payload.value}`
               )
-            } catch {
-              // ignore parse errors
             }
           }
 

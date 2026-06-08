@@ -17,6 +17,7 @@ import { createLogger } from '../kernel/logger.js'
 import { clawDb } from '../storage/store/index.js'
 import { createNewSession } from '../storage/sessionManager.js'
 import { clawMessage } from '../types/index.js'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { modelCall } from '../../../backend/src/model/model/index.js'
 import { getModelConfigList } from '../../../backend/src/config/index.js'
 
@@ -309,9 +310,11 @@ export function startTaskExecutor(): void {
       const parent = clawDb.findTaskById(completedTask.parent_id)
       if (parent) {
         let sc: Record<string, unknown> = {}
-        try {
-          sc = JSON.parse(parent.shared_content || '{}')
-        } catch {}
+        sc = safeJsonParse(
+          parent.shared_content,
+          {},
+          'taskExecutor.sharedContent'
+        )
         sc[String(taskId)] = reply.slice(0, 2000)
         clawDb.updateTask(completedTask.parent_id, { sharedContent: sc })
       }

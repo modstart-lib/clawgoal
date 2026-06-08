@@ -3,6 +3,7 @@
  */
 
 import { config } from '../../../backend/src/config/index.js'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { clawDb } from '../storage/store/index.js'
 import type { ToolContext, ToolDefinition, ToolResult } from '../types/index.js'
 
@@ -212,12 +213,11 @@ async function sharedContentGet(
     if (!task.shared_content) {
       return { success: true, output: JSON.stringify(null) }
     }
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(task.shared_content)
-    } catch {
-      parsed = task.shared_content
-    }
+    const parsed = safeJsonParse(
+      task.shared_content,
+      task.shared_content,
+      'task.sharedContent'
+    )
     return { success: true, output: JSON.stringify(parsed, null, 2) }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

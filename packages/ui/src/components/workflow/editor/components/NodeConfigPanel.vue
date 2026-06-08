@@ -17,7 +17,7 @@ import VariableInput from './VariableInput.vue'
 import VariableTextareaInput from './VariableTextareaInput.vue'
 import FlowFilePreviewButton from './FlowFilePreviewButton.vue'
 import { chatWithModel } from '@/api/model'
-import { copyText } from '@/utils/utils'
+import { copyText, safeJsonParse } from '@/utils/utils'
 
 const { t } = useI18n()
 
@@ -143,7 +143,7 @@ async function handleSmartConfig() {
     const jsonStr = content
       .replace(/^```(?:json)?\n?/, '')
       .replace(/\n?```$/, '')
-    const updates = JSON.parse(jsonStr)
+    const updates = safeJsonParse(jsonStr, {})
     onUpdateProperties(updates)
     smartOpen.value = false
     smartText.value = ''

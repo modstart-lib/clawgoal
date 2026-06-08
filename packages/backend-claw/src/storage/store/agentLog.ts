@@ -26,6 +26,7 @@ import { createLogger } from '../../kernel/logger.js'
 import { clawDb } from './index.js'
 import type { AgentMessageContent } from './types.js'
 import { getModelConfigList } from '../../../../backend/src/config/index.js'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 import { modelCall } from '../../../../backend/src/model/model/index.js'
 
 const logger = createLogger('agent-log')
@@ -358,12 +359,11 @@ export function initAgentLog(): void {
         try {
           const ctx = turnMap.get(turnKey(evt.agentId, evt.chatId))
           // 从表里读 title 和 meta，无需内存缓存
-          let parsedMeta: Record<string, any> | undefined
-          try {
-            parsedMeta = JSON.parse(toolRow.meta)
-          } catch {
-            /* ignore */
-          }
+          const parsedMeta = safeJsonParse(
+            toolRow.meta,
+            undefined,
+            'agentLog.meta'
+          ) as Record<string, any> | undefined
           clawDb.updateAgentMessage(toolRow.msg_id, {
             role: 'assistant',
             stage: {

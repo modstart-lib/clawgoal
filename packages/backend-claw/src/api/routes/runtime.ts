@@ -15,6 +15,7 @@ import type { AuthRequest } from '../../../../backend/src/api/middlewares/auth.j
 import { ResponseCodes } from '../../../../backend/src/api/types/constants.js'
 import { apiHandler } from '../../../../backend/src/utils/api.js'
 import { error, success } from '../../../../backend/src/utils/response.js'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 import { getClawRuntimeWs } from '../../index.js'
 import { useI18n } from '../../locale/index.js'
 import { localRuntimeController } from '../../runtime/localController.js'
@@ -32,11 +33,7 @@ const router: Router = Router()
 function serializeRuntime(row: RuntimeRow) {
   let runners = null
   if (row.runners) {
-    try {
-      runners = JSON.parse(row.runners)
-    } catch {
-      /* ignore */
-    }
+    runners = safeJsonParse(row.runners, null, 'runtime.runners')
   }
   return { ...row, runners }
 }
@@ -196,11 +193,7 @@ router.post(
     }
     let runners: RunnerInfo[] = []
     if (existing.runners) {
-      try {
-        runners = JSON.parse(existing.runners)
-      } catch {
-        /* ignore */
-      }
+      runners = safeJsonParse(existing.runners, [], 'runtime.runners')
     }
     const idx = runners.findIndex((e) => e.name === name)
     if (idx === -1) {

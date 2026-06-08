@@ -6,6 +6,7 @@ import pino from 'pino'
 import type { AgentExecutor } from '../agentExecutor.js'
 import type { AbstractCheckpointListener } from '../listener.js'
 import { createAgentLogger } from '../logger.js'
+import { safeJsonParse } from '../../utils/json.js'
 
 export abstract class AbstractCheckpointDriver {
   protected executor: AgentExecutor
@@ -79,14 +80,18 @@ export abstract class AbstractCheckpointDriver {
     try {
       const task = this.executor.task
       if (task.checkpoint && task.checkpoint.trim() !== '') {
-        const checkpoint = JSON.parse(task.checkpoint)
+        const checkpoint = safeJsonParse(task.checkpoint, {}, 'checkpoint.load')
         await this.executor.log.logInfo('[CheckpointLoad]-FromCheckpoint', {
           checkpoint: Object.keys(checkpoint),
         })
         const state = await this.applyAfterLoad(checkpoint.state)
         return { ...checkpoint, state }
       }
-      const initialState = JSON.parse(task.initialState)
+      const initialState = safeJsonParse(
+        task.initialState,
+        {},
+        'checkpoint.initialState'
+      )
       await this.executor.log.logInfo('[CheckpointLoad]-FromInitialState', {
         initialState: Object.keys(initialState),
       })

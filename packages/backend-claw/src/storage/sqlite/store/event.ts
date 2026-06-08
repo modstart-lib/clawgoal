@@ -1,5 +1,6 @@
 import type { Database, Statement } from 'bun:sqlite'
 import { makeSqlHelper } from '../../../../../backend/src/storage/sqlite.js'
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 import type {
   AddEventInput,
   EventRow,
@@ -16,7 +17,10 @@ export class SqliteClawEventStore {
     const rows = this.sql(
       'SELECT * FROM claw_event WHERE project_id = ? ORDER BY CASE WHEN day IS NULL THEN 1 ELSE 0 END, day DESC'
     ).all(projectId) as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'event.meta'),
+    }))
   }
 
   findEventsByProjectIdPaginated(
@@ -64,7 +68,13 @@ export class SqliteClawEventStore {
     const records = this.sql(
       `SELECT * FROM claw_event WHERE ${where} ${orderBy} LIMIT ? OFFSET ?`
     ).all(...params, pageSize, offset) as any[]
-    return { records: records.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null })), total }
+    return {
+      records: records.map((r) => ({
+        ...r,
+        meta: safeJsonParse(r.meta, null, 'event.meta'),
+      })),
+      total,
+    }
   }
 
   findEventTypesByProjectId(projectId: number): string[] {
@@ -76,7 +86,9 @@ export class SqliteClawEventStore {
 
   findEventById(id: number): EventRow | undefined {
     const row = this.sql('SELECT * FROM claw_event WHERE id = ?').get(id) as any
-    return row ? { ...row, meta: row.meta ? JSON.parse(row.meta) : null } : undefined
+    return row
+      ? { ...row, meta: safeJsonParse(row.meta, null, 'event.meta') }
+      : undefined
   }
 
   findEventByProjectIdAndTitle(
@@ -86,24 +98,28 @@ export class SqliteClawEventStore {
     const row = this.sql(
       'SELECT * FROM claw_event WHERE project_id = ? AND title = ? LIMIT 1'
     ).get(projectId, title) as any
-    return row ? { ...row, meta: row.meta ? JSON.parse(row.meta) : null } : undefined
+    return row
+      ? { ...row, meta: safeJsonParse(row.meta, null, 'event.meta') }
+      : undefined
   }
 
   findEventByShareHash(shareHash: string): EventRow | undefined {
     const row = this.sql(
       'SELECT * FROM claw_event WHERE share_hash = ? LIMIT 1'
     ).get(shareHash) as any
-    return row ? { ...row, meta: row.meta ? JSON.parse(row.meta) : null } : undefined
+    return row
+      ? { ...row, meta: safeJsonParse(row.meta, null, 'event.meta') }
+      : undefined
   }
 
-  findEventsByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): EventRow[] {
+  findEventsByProjectIdAndBiz(projectId: number, biz: string): EventRow[] {
     const rows = this.sql(
-      "SELECT * FROM claw_event WHERE project_id = ? AND biz = ? ORDER BY CASE WHEN day IS NULL THEN 1 ELSE 0 END, day DESC"
+      'SELECT * FROM claw_event WHERE project_id = ? AND biz = ? ORDER BY CASE WHEN day IS NULL THEN 1 ELSE 0 END, day DESC'
     ).all(projectId, biz) as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'event.meta'),
+    }))
   }
 
   insertEvent(input: AddEventInput): EventRow {

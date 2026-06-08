@@ -30,6 +30,7 @@
  *     runRunner          { sessionId, name, prompt }
  */
 
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { randomUUID } from 'node:crypto'
 import EventEmitter from 'events'
 import { type Socket, Server } from 'socket.io'
@@ -156,13 +157,13 @@ export class RuntimeWebsocketService extends BaseWebsocketService {
         const existingRow = clawDb.findRuntimeById(runtimeId)
         const existingEnableMap: Record<string, boolean> = {}
         if (existingRow?.runners) {
-          try {
-            const existingList: RunnerInfo[] = JSON.parse(existingRow.runners)
-            for (const e of existingList) {
-              existingEnableMap[e.name] = e.enable !== false
-            }
-          } catch {
-            /* ignore */
+          const existingList: RunnerInfo[] = safeJsonParse(
+            existingRow.runners,
+            [],
+            'websocket.runtime.runners'
+          )
+          for (const e of existingList) {
+            existingEnableMap[e.name] = e.enable !== false
           }
         }
 

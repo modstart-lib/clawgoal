@@ -11,6 +11,7 @@ import { promisify } from 'node:util'
 import path from 'node:path'
 import { getModelConfigList } from '../config/index.js'
 import { modelCall } from '../model/model/index.js'
+import { safeJsonParse } from './json.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -385,8 +386,10 @@ export async function readOrCreateGitSpaceConfig(
     await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8')
   } else {
     try {
-      config = JSON.parse(
-        await fs.readFile(configPath, 'utf8')
+      config = safeJsonParse(
+        await fs.readFile(configPath, 'utf8'),
+        {} as GitSpaceConfig,
+        'git.config'
       ) as GitSpaceConfig
     } catch {
       throw new Error(`clawgoal.json 解析失败，请检查 ${configPath} 的格式`)

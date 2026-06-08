@@ -1,5 +1,6 @@
 import type { Database, Statement } from 'bun:sqlite'
 import { makeSqlHelper } from '../../../../../backend/src/storage/sqlite.js'
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 import type {
   AddBacklogInput,
   BacklogRow,
@@ -57,7 +58,10 @@ export class SqliteClawBacklogStore {
     const rows = this.sql(
       `SELECT * FROM claw_backlog WHERE ${conditions.join(' AND ')} ${ORDER}`
     ).all(...params) as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'backlog.meta'),
+    }))
   }
 
   paginateBacklogsByProjectId(
@@ -119,7 +123,13 @@ export class SqliteClawBacklogStore {
     const records = this.sql(
       `SELECT * FROM claw_backlog WHERE ${where} ${ORDER} LIMIT ? OFFSET ?`
     ).all(...params, pageSize, offset) as any[]
-    return { records: records.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null })), total }
+    return {
+      records: records.map((r) => ({
+        ...r,
+        meta: safeJsonParse(r.meta, null, 'backlog.meta'),
+      })),
+      total,
+    }
   }
 
   findBacklogTypesByProjectId(projectId: number): string[] {
@@ -130,8 +140,12 @@ export class SqliteClawBacklogStore {
   }
 
   findBacklogById(id: number): BacklogRow | undefined {
-    const row = this.sql('SELECT * FROM claw_backlog WHERE id = ?').get(id) as any
-    return row ? { ...row, meta: row.meta ? JSON.parse(row.meta) : null } : undefined
+    const row = this.sql('SELECT * FROM claw_backlog WHERE id = ?').get(
+      id
+    ) as any
+    return row
+      ? { ...row, meta: safeJsonParse(row.meta, null, 'backlog.meta') }
+      : undefined
   }
 
   findBacklogsBySource(source: string, projectId?: number): BacklogRow[] {
@@ -142,7 +156,10 @@ export class SqliteClawBacklogStore {
       : (this.sql(
           'SELECT * FROM claw_backlog WHERE source = ? ORDER BY id DESC'
         ).all(source) as any[])
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'backlog.meta'),
+    }))
   }
 
   insertBacklog(input: AddBacklogInput): BacklogRow {

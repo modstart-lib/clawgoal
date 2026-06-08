@@ -1,5 +1,6 @@
 import type { Database, Statement } from 'bun:sqlite'
 import { makeSqlHelper } from '../../../../../backend/src/storage/sqlite.js'
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 import type {
   AddWikiInput,
   InsertWikiSyncLogInput,
@@ -26,12 +27,17 @@ export class SqliteClawWikiStore {
       : (this.sql(
           'SELECT * FROM claw_wiki WHERE project_id = ? ORDER BY id DESC'
         ).all(projectId) as any[])
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'wiki.meta'),
+    }))
   }
 
   findWikiById(id: number): WikiRow | undefined {
     const row = this.sql('SELECT * FROM claw_wiki WHERE id = ?').get(id) as any
-    return row ? { ...row, meta: row.meta ? JSON.parse(row.meta) : null } : undefined
+    return row
+      ? { ...row, meta: safeJsonParse(row.meta, null, 'wiki.meta') }
+      : undefined
   }
 
   searchWikis(
@@ -59,7 +65,10 @@ export class SqliteClawWikiStore {
         'SELECT * FROM claw_wiki WHERE project_id = ? ORDER BY id DESC LIMIT ?'
       ).all(projectId, limit) as any[]
     }
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'wiki.meta'),
+    }))
   }
 
   paginateWikis(
@@ -95,31 +104,43 @@ export class SqliteClawWikiStore {
     const records = this.sql(
       `SELECT * FROM claw_wiki WHERE ${where} ORDER BY id DESC LIMIT ? OFFSET ?`
     ).all(...params, pageSize, offset) as any[]
-    return { records: records.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null })), total }
+    return {
+      records: records.map((r) => ({
+        ...r,
+        meta: safeJsonParse(r.meta, null, 'wiki.meta'),
+      })),
+      total,
+    }
   }
 
   findDueSyncWikis(): WikiRow[] {
     const rows = this.sql(
       "SELECT * FROM claw_wiki WHERE type = 'syncUrl' AND sync_url IS NOT NULL AND (next_sync_time IS NULL OR next_sync_time <= datetime('now', 'localtime'))"
     ).all() as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'wiki.meta'),
+    }))
   }
 
   findDueSyncPathWikis(): WikiRow[] {
     const rows = this.sql(
       "SELECT * FROM claw_wiki WHERE type = 'syncPath' AND sync_path IS NOT NULL AND (next_sync_time IS NULL OR next_sync_time <= datetime('now', 'localtime'))"
     ).all() as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'wiki.meta'),
+    }))
   }
 
-  findWikisByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): WikiRow[] {
+  findWikisByProjectIdAndBiz(projectId: number, biz: string): WikiRow[] {
     const rows = this.sql(
       'SELECT * FROM claw_wiki WHERE project_id = ? AND biz = ? ORDER BY id DESC'
     ).all(projectId, biz) as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'wiki.meta'),
+    }))
   }
 
   findWikisByPathPrefix(projectId: number, syncPath: string): WikiRow[] {
@@ -127,7 +148,10 @@ export class SqliteClawWikiStore {
     const rows = this.sql(
       "SELECT * FROM claw_wiki WHERE project_id = ? AND type = 'syncPath' AND source_url LIKE ?"
     ).all(projectId, prefix + '%') as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'wiki.meta'),
+    }))
   }
 
   insertWiki(input: AddWikiInput): WikiRow {

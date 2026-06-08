@@ -5,6 +5,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { safeJsonParse } from './json.js'
 
 export interface ClientConfig {
   dataPath?: string
@@ -20,7 +21,7 @@ export function loadClientConfig(): ClientConfig | null {
   const p = getClientConfigPath()
   try {
     const data = fs.readFileSync(p, 'utf-8')
-    return JSON.parse(data)
+    return safeJsonParse(data, null, 'clientConfig')
   } catch {
     return null
   }

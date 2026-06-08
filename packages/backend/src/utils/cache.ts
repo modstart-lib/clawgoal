@@ -7,6 +7,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { config } from '../config'
 import { createNamedLogger } from './logger'
+import { safeJsonParse } from './json.js'
 
 const logger = createNamedLogger('cache')
 
@@ -41,7 +42,7 @@ export function cacheGet<T>(key: string): T | undefined {
     const filePath = getCachePath(key)
     if (!fs.existsSync(filePath)) return undefined
     const raw = fs.readFileSync(filePath, 'utf-8')
-    return JSON.parse(raw) as T
+    return safeJsonParse(raw, undefined as T, 'cache') as T
   } catch (err) {
     logger.warn({ key, err }, 'cache.get failed')
     return undefined

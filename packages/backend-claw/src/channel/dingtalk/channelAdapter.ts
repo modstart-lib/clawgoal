@@ -25,6 +25,7 @@ import { clawMessage } from '../../types/index.js'
 import { resolveIncomingSession } from '../../storage/sessionManager.js'
 import { ChannelAdapterBase } from '../adapterBase.js'
 import { config } from '../../../../backend/src/config/index.js'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 
 const logger = createLogger('dingtalk')
 
@@ -45,7 +46,11 @@ export class DingtalkChannelAdapter extends ChannelAdapterBase {
 
   constructor(row: ChannelRow, defaultAgentId: number) {
     const cfg = row.config
-      ? (JSON.parse(row.config) as Record<string, string>)
+      ? safeJsonParse(
+          row.config,
+          {} as Record<string, string>,
+          'channel.config'
+        )
       : {}
     if (!cfg['appKey'] || !cfg['appSecret']) {
       throw new Error(

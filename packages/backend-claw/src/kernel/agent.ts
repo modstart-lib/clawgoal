@@ -11,6 +11,7 @@
 
 import type { MessageContent } from '@langchain/core/messages'
 import { HumanMessage } from '@langchain/core/messages'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import {
   modelCall,
   resolveAgentModelListByRef,
@@ -456,11 +457,7 @@ export class AgentAgentRunner {
           const newRawMessages = allRawRows
             .slice(lastProgressMsgCount)
             .map((r) => {
-              try {
-                return JSON.parse(r.message)
-              } catch {
-                return {}
-              }
+              return safeJsonParse(r.message, {}, 'kernel.agent.message')
             })
           lastProgressMsgCount = allRawRows.length
           progressCallback({

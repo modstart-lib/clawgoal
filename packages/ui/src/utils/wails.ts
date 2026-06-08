@@ -9,6 +9,8 @@
  *   - openDevTools  {}                — 打开 Wails 审查元素调试面板
  */
 
+import { safeJsonParse } from '@/utils/utils'
+
 type WailsCallArgs = Record<string, unknown>
 
 interface WailsResult<T = unknown> {
@@ -35,7 +37,7 @@ export async function wailsCall<T = unknown>(
   const goApp = (window as any)['go']?.['main']?.['App']
   if (!goApp?.Call) return null
   const raw: string = await goApp.Call(name, JSON.stringify(args))
-  return JSON.parse(raw) as WailsResult<T>
+  return safeJsonParse(raw, {} as WailsResult<T>)
 }
 
 /** 用系统默认浏览器打开链接 */

@@ -10,6 +10,7 @@ import type {
   UpdateNoticeInput,
 } from '../../store/notice.js'
 import { createNotice, createNoticeLog } from '../schema.js'
+import { safeJsonParse } from '../../../utils/json.js'
 
 function mapNotice(r: any): NoticeRow {
   return {
@@ -21,7 +22,7 @@ function mapNotice(r: any): NoticeRow {
     rateLimitEnable: Boolean(r.rate_limit_enable),
     rateInterval: Number(r.rate_interval),
     type: r.type,
-    config: r.config ? JSON.parse(r.config) : {},
+    config: r.config ? safeJsonParse(r.config, {}, 'notice.config') : {},
     proxyName: r.proxy_name ?? null,
     createdAt:
       r.created_at instanceof Date ? r.created_at : new Date(r.created_at),

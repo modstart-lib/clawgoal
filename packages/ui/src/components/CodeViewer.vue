@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { useTheme } from '@/composables/theme.ts'
-import { copyText } from '@/utils/utils'
+import { copyText, safeJsonParse } from '@/utils/utils'
 import { javascript } from '@codemirror/lang-javascript'
 import { Compartment, EditorState } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
@@ -59,7 +59,10 @@ const themeCompartment = new Compartment()
 const displayContent = computed(() => {
   if (!props.json) return props.content ?? ''
   try {
-    return JSON.stringify(JSON.parse(props.content ?? ''), null, 2)
+    const parsed = safeJsonParse(props.content ?? '', null)
+    return parsed !== null
+      ? JSON.stringify(parsed, null, 2)
+      : (props.content ?? '')
   } catch {
     return props.content ?? ''
   }

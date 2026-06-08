@@ -19,6 +19,7 @@ import { config as appConfig } from '../../../backend/src/config/index.js'
 import { generateSystemAvatar, resolveAvatar } from '../assets/avatar.js'
 import { BUNDLED_ROLES } from '../generated/bundledRoles.js'
 import { createLogger } from '../kernel/logger.js'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { AGENT_DEFAULT_TOOLS } from '../tools/index.js'
 import { skillRegistry } from '../skills/index.js'
 import { mcpManager } from '../mcp/manager.js'
@@ -149,9 +150,7 @@ function parseRoleConfig(raw: unknown, roleName: string): RoleConfig {
         const rawSkills = Array.isArray(capsRaw['skills'])
           ? (capsRaw['skills'] as string[])
           : []
-        return rawSkills.flatMap((t) =>
-          t === '*' ? skillRegistry.list() : t
-        )
+        return rawSkills.flatMap((t) => (t === '*' ? skillRegistry.list() : t))
       })(),
       mcps: (() => {
         const rawMcps = Array.isArray(capsRaw['mcps'])
@@ -495,11 +494,7 @@ function loadAgentsFromDb(
     // 解析 JSON 覆盖
     let rawConfig: Record<string, unknown> = {}
     if (row.config) {
-      try {
-        rawConfig = JSON.parse(row.config)
-      } catch {
-        logger.warn(`Agent "${row.title}" has invalid config JSON, ignoring`)
-      }
+      rawConfig = safeJsonParse(row.config, {}, 'agent.config')
     }
     const overrides = rawConfig as AddAgentOptions['overrides']
 
@@ -519,35 +514,21 @@ function loadAgentsFromDb(
           | 'working',
         avatar: row.avatar ?? null,
         avatarConfig: row.avatar_config
-          ? (() => {
-              try {
-                return JSON.parse(row.avatar_config!)
-              } catch {
-                return null
-              }
-            })()
+          ? safeJsonParse(row.avatar_config, null, 'agent.avatarConfig')
           : null,
         channelIds: row.channel_ids
-          ? (() => {
-              try {
-                return JSON.parse(row.channel_ids!)
-              } catch {
-                return []
-              }
-            })()
+          ? safeJsonParse(row.channel_ids, [], 'agent.channelIds')
           : [],
         webhookEnable: row.webhook_enable === 1,
         webhookToken: row.webhook_token ?? null,
         createdAt: new Date(row.created_at),
         projectId: row.project_id ?? null,
         param: row.param
-          ? (() => {
-              try {
-                return JSON.parse(row.param!) as Record<string, unknown>
-              } catch {
-                return {}
-              }
-            })()
+          ? safeJsonParse(
+              row.param,
+              {} as Record<string, unknown>,
+              'agent.param'
+            )
           : {},
         // Set workflow module loading hints
         _builtinRoleName: bundledNames.has(row.role_name)

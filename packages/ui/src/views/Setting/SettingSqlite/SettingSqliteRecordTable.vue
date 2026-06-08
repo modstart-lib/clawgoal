@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DbColumn } from '@/api/sqlite'
 import ListerTop from '@/components/ListerTop.vue'
-import { copyText } from '@/utils/utils'
+import { copyText, safeJsonParse } from '@/utils/utils'
 import Edit2 from '~icons/lucide/edit-2'
 import Trash2 from '~icons/lucide/trash-2'
 import { computed, ref } from 'vue'
@@ -112,12 +112,8 @@ function cellTooltip(val: any): string {
 function isJsonString(s: string): boolean {
   const t = s.trim()
   if (!t.startsWith('{') && !t.startsWith('[')) return false
-  try {
-    JSON.parse(t)
-    return true
-  } catch {
-    return false
-  }
+  const parsed = safeJsonParse(t, undefined)
+  return parsed !== undefined
 }
 
 const jsonPreviewVisible = ref(false)
@@ -135,7 +131,9 @@ function copyColName(name: string) {
 function openJsonPreview(val: any) {
   const s = String(val)
   try {
-    jsonPreviewContent.value = JSON.stringify(JSON.parse(s), null, 2)
+    const parsed = safeJsonParse(s, null)
+    jsonPreviewContent.value =
+      parsed !== null ? JSON.stringify(parsed, null, 2) : s
   } catch {
     jsonPreviewContent.value = s
   }

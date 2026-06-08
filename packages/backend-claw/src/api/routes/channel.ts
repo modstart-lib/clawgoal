@@ -13,6 +13,7 @@ import type { AuthRequest } from '../../../../backend/src/api/middlewares/auth.j
 import { ResponseCodes } from '../../../../backend/src/api/types/constants.js'
 import { apiHandler } from '../../../../backend/src/utils/api.js'
 import { error, success } from '../../../../backend/src/utils/response.js'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 import { clawEventBus } from '../../kernel/eventBus.js'
 import { createLogger } from '../../kernel/logger.js'
 import { useI18n } from '../../locale/index.js'
@@ -43,7 +44,7 @@ router.post(
         enable: b.enable === 1,
         isGlobal: b.is_global === 1,
         status: b.status,
-        config: b.config ? JSON.parse(b.config) : {},
+        config: b.config ? safeJsonParse(b.config, {}, 'channel.config') : {},
         createdAt: b.created_at,
       })),
     })
@@ -144,7 +145,11 @@ router.post(
     // Compare with existing record to determine if the connection must be re-established
     const existingRow = clawDb.findChannelById(id)
     const existingCfg: Record<string, string> = existingRow?.config
-      ? (JSON.parse(existingRow.config) as Record<string, string>)
+      ? safeJsonParse(
+          existingRow.config,
+          {} as Record<string, string>,
+          'channel.config'
+        )
       : {}
 
     const connectivityChanged =
@@ -230,7 +235,13 @@ router.post(
       return error(res, ResponseCodes.DEFAULT_ERROR, t('claw.channelNotFound'))
     }
 
-    const cfg: Record<string, string> = row.config ? JSON.parse(row.config) : {}
+    const cfg: Record<string, string> = row.config
+      ? safeJsonParse(
+          row.config,
+          {} as Record<string, string>,
+          'channel.config'
+        )
+      : {}
     const chatId =
       cfg['chatId'] ||
       cfg['ownerId'] ||

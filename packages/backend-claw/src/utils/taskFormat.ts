@@ -1,6 +1,7 @@
 /**
  * 任务格式化工具 - 供多个路由复用
  */
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { clawDb } from '../storage/store/index.js'
 
 export const statusTextMaps: Record<string, Record<string, string>> = {
@@ -66,20 +67,12 @@ export const formatTask = (
   sessionId: task.session_id ?? 0,
   projectId: task.project_id ?? null,
   updatedAt: task.updated_at ?? task.created_at,
-  needs: (() => {
-    try {
-      return JSON.parse(task.needs || '[]')
-    } catch {
-      return []
-    }
-  })(),
-  sharedContent: (() => {
-    try {
-      return JSON.parse(task.shared_content || '{}')
-    } catch {
-      return {}
-    }
-  })(),
+  needs: safeJsonParse(task.needs, [], 'taskFormat.needs'),
+  sharedContent: safeJsonParse(
+    task.shared_content,
+    {},
+    'taskFormat.sharedContent'
+  ),
   actions: actions ?? [],
 })
 

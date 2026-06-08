@@ -16,6 +16,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { generateId } from '../../../backend/src/utils/utils.js'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { getClawRuntimeWs } from '../index.js'
 import { clawEventBus } from '../kernel/eventBus.js'
 import { localRuntimeController } from '../runtime/localController.js'
@@ -207,18 +208,18 @@ async function runtimeList(
           : '-'
     let runnerStr = '(not synced)'
     if (c.runners) {
-      try {
-        const runners: RunnerInfo[] = JSON.parse(c.runners)
-        runnerStr =
-          runners.length > 0
-            ? runners
-                .filter((e) => e.enable !== false)
-                .map((e) => `${e.name}(${e.title})`)
-                .join(', ') || '(all disabled)'
-            : '(none)'
-      } catch {
-        runnerStr = '(invalid)'
-      }
+      const runners: RunnerInfo[] = safeJsonParse(
+        c.runners,
+        [],
+        'runtime.runners'
+      )
+      runnerStr =
+        runners.length > 0
+          ? runners
+              .filter((e) => e.enable !== false)
+              .map((e) => `${e.name}(${e.title})`)
+              .join(', ') || '(all disabled)'
+          : '(none)'
     }
     return `| ${cell(c.name)} | ${cell(c.title)} | ${statusIcon} | ${activeAt} | ${cell(runnerStr)} |`
   })
@@ -348,11 +349,7 @@ async function runtimeExecute(
   // 检查 runner 是否存在且已启用
   let runners: RunnerInfo[] = []
   if (runtime.runners) {
-    try {
-      runners = JSON.parse(runtime.runners)
-    } catch {
-      // ignore parse errors
-    }
+    runners = safeJsonParse(runtime.runners, [], 'runtime.runners')
   }
   const runner = runners.find((e) => e.name === runner_name)
   if (!runner) {

@@ -24,6 +24,7 @@ import { clawMessage } from '../../types/index.js'
 import { resolveIncomingSession } from '../../storage/sessionManager.js'
 import { ChannelAdapterBase } from '../adapterBase.js'
 import { config } from '../../../../backend/src/config/index.js'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 
 const logger = createLogger('feishu')
 
@@ -44,7 +45,11 @@ export class FeishuChannelAdapter extends ChannelAdapterBase {
 
   constructor(row: ChannelRow, defaultAgentId: number) {
     const cfg = row.config
-      ? (JSON.parse(row.config) as Record<string, string>)
+      ? safeJsonParse(
+          row.config,
+          {} as Record<string, string>,
+          'channel.config'
+        )
       : {}
     if (!cfg['appId'] || !cfg['appSecret']) {
       throw new Error(
@@ -138,12 +143,10 @@ export class FeishuChannelAdapter extends ChannelAdapterBase {
     }
 
     let text = ''
-    try {
-      const parsed = JSON.parse(msgContent) as { text?: string }
-      text = parsed.text ?? ''
-    } catch {
-      text = msgContent
-    }
+    const parsed = safeJsonParse(msgContent, null, 'feishu.msgContent') as {
+      text?: string
+    } | null
+    text = parsed?.text ?? msgContent
 
     if (!text.trim()) return
 
@@ -412,7 +415,11 @@ export class FeishuChannelAdapter extends ChannelAdapterBase {
       decipher.update(content),
       decipher.final(),
     ])
-    return JSON.parse(decrypted.toString('utf8')) as Record<string, unknown>
+    return safeJsonParse(
+      decrypted.toString('utf8'),
+      {} as Record<string, unknown>,
+      'feishu.cardPayload'
+    )
   }
 
   /** 将飞书 chat_id 字符串映射为数字（取哈希低 31 位保证正数） */

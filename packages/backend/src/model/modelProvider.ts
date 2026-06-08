@@ -7,6 +7,7 @@ import fs from 'fs'
 import { parseDocument } from 'yaml'
 import { config, getConfigFilePath, reloadConfig } from '../config/index.js'
 import { paramDb } from '../storage/store/userParam.js'
+import { safeJsonParse } from '../utils/json.js'
 
 // ─── 类型 ─────────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,11 @@ export async function getBuiltinParam(
   const raw = await paramDb.getParam(tenantId, userId, BUILTIN_PARAM_KEY)
   if (!raw) return { isDefault: false, models: [] }
   try {
-    return JSON.parse(raw) as BuiltinProviderParam
+    return safeJsonParse(
+      raw,
+      { isDefault: false, models: [] },
+      'modelProvider'
+    ) as BuiltinProviderParam
   } catch {
     return { isDefault: false, models: [] }
   }

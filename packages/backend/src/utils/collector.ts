@@ -24,7 +24,7 @@ interface CollectDataItem {
   data: unknown
 }
 
-let queue: CollectDataItem[] = []
+const queue: CollectDataItem[] = []
 let flushTimer: ReturnType<typeof setTimeout> | null = null
 
 function scheduleFlush(): void {

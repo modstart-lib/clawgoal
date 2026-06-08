@@ -1,5 +1,6 @@
 import type { Database, Statement } from 'bun:sqlite'
 import { makeSqlHelper } from '../../../../../backend/src/storage/sqlite.js'
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 import type {
   AgentMessageContent,
   AgentMessageItem,
@@ -14,14 +15,16 @@ export class SqliteAgentMessageStore {
   }
 
   private _parseContent(row: AgentMessageRow): AgentMessageContent {
-    try {
-      return JSON.parse(row.content) as AgentMessageContent
-    } catch {
-      return {
-        role: row.role as 'user' | 'assistant',
-        text: row.content,
-        timestamp: '0',
-      }
+    const parsed = safeJsonParse(
+      row.content,
+      null,
+      'agentMessage.content'
+    ) as AgentMessageContent | null
+    if (parsed) return parsed
+    return {
+      role: row.role as 'user' | 'assistant',
+      text: row.content,
+      timestamp: '0',
     }
   }
 

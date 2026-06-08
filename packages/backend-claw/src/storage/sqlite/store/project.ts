@@ -1,5 +1,6 @@
 import type { Database, Statement } from 'bun:sqlite'
 import { makeSqlHelper } from '../../../../../backend/src/storage/sqlite.js'
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 import type {
   AddProjectInput,
   ProjectRow,
@@ -31,12 +32,19 @@ export class SqliteClawProjectStore {
     const rows = this.sql(
       'SELECT * FROM claw_project WHERE tenant_id = ? AND user_id = ? ORDER BY updated_at DESC'
     ).all(tenantId, userId) as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'project.meta'),
+    }))
   }
 
   findProjectById(id: number): ProjectRow | undefined {
-    const row = this.sql('SELECT * FROM claw_project WHERE id = ?').get(id) as any
-    return row ? { ...row, meta: row.meta ? JSON.parse(row.meta) : null } : undefined
+    const row = this.sql('SELECT * FROM claw_project WHERE id = ?').get(
+      id
+    ) as any
+    return row
+      ? { ...row, meta: safeJsonParse(row.meta, null, 'project.meta') }
+      : undefined
   }
 
   insertProject(input: AddProjectInput): ProjectRow {

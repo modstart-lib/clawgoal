@@ -52,6 +52,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { safeJsonParse } from '@/utils/utils'
 import CodeEditor from './CodeEditor.vue'
 
 const props = defineProps<{
@@ -82,7 +83,7 @@ function confirmEdit() {
     return
   }
   try {
-    const obj = JSON.parse(trimmed)
+    const obj = safeJsonParse(trimmed, {})
     if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
       return
     }

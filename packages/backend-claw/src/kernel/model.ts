@@ -13,6 +13,7 @@ import {
 } from '@langchain/core/messages'
 import { getEncoding } from 'js-tiktoken'
 import type pino from 'pino'
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import type { ModelConfig } from '../../../backend/src/config'
 import { getModelConfigList } from '../../../backend/src/config'
 import { getUserLang } from '../../../backend/src/locale/index.js'
@@ -119,34 +120,26 @@ export function popPendingAsksState(
   const row = clawDb.popAgentic(sessionId)
   if (!row) return undefined
 
-  try {
-    const d = JSON.parse(row.agentic_data ?? 'null')
-    if (!d) return undefined
-    const agent = agentManager.get(d.agentId)
-    if (!agent) {
-      logger.warn(`popPendingAsksState: agent id=${d.agentId} not found`)
-      return undefined
-    }
-    return {
-      agent,
-      chatId: d.chatId,
-      sessionId: row.id,
-      channelId: d.channelId ?? undefined,
-      appendMessages: deserializeMessages(d.messages),
-      modelConfigs: d.modelConfigs,
-      modelRef: d.modelRef,
-      maxToolRounds: d.maxToolRounds,
-      allowedTools: d.allowedTools,
-      allowedMcps: d.allowedMcps,
-      content: d.content,
-      userText: d.userText,
-    }
-  } catch (e) {
-    logger.error(
-      { sessionId, e },
-      'popPendingAsksState: failed to deserialize state'
-    )
+  const d = safeJsonParse(row.agentic_data, null, 'kernel.model.agenticData')
+  if (!d) return undefined
+  const agent = agentManager.get(d.agentId)
+  if (!agent) {
+    logger.warn(`popPendingAsksState: agent id=${d.agentId} not found`)
     return undefined
+  }
+  return {
+    agent,
+    chatId: d.chatId,
+    sessionId: row.id,
+    channelId: d.channelId ?? undefined,
+    appendMessages: deserializeMessages(d.messages),
+    modelConfigs: d.modelConfigs,
+    modelRef: d.modelRef,
+    maxToolRounds: d.maxToolRounds,
+    allowedTools: d.allowedTools,
+    allowedMcps: d.allowedMcps,
+    content: d.content,
+    userText: d.userText,
   }
 }
 

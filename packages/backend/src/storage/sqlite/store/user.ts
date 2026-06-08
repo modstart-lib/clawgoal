@@ -4,6 +4,7 @@ import { execSqlSafe } from '../../migrate.js'
 import { getSharedDb } from '../../sqlite.js'
 import { createUser } from '../schema/user.js'
 import { deepMerge } from '../../../utils/utils.js'
+import { safeJsonParse } from '../../../utils/json.js'
 
 export interface UserRow {
   id: number
@@ -24,7 +25,9 @@ function mapUser(r: any): UserRow {
     username: r.username,
     password: r.password,
     passwordSalt: r.password_salt,
-    apiData: r.api_data ? JSON.parse(r.api_data) : null,
+    apiData: r.api_data
+      ? safeJsonParse(r.api_data, null, 'user.apiData')
+      : null,
     isCreator: r.is_creator === 1,
     createdAt: new Date(r.created_at),
     updatedAt: new Date(r.updated_at),

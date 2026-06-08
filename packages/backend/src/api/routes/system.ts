@@ -12,6 +12,7 @@ import {
   getDeviceUUID,
   buildUserAgent,
 } from '../../utils/platform.js'
+import { safeJsonParse } from '../../utils/json.js'
 
 const router = Router()
 
@@ -228,7 +229,7 @@ router.post(
           for (const line of lines) {
             // 尝试解析时间戳过滤
             try {
-              const parsed = JSON.parse(line)
+              const parsed = safeJsonParse(line, null, 'system.logLine')
               const lineTime = parsed.time ? new Date(parsed.time).getTime() : 0
               if (lineTime && (lineTime < startMs || lineTime > endMs)) continue
             } catch {

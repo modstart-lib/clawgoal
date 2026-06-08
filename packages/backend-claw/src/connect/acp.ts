@@ -6,6 +6,7 @@
  * Supports both synchronous (POST /runs) and streaming (POST /runs/stream) modes.
  */
 
+import { safeJsonParse } from '../../../backend/src/utils/json.js'
 import { createNamedLogger } from '../../../backend/src/utils/logger.js'
 
 const logger = createNamedLogger('connect')
@@ -129,33 +130,30 @@ async function _runStream(
 
     for (const line of lines) {
       if (!line.startsWith('data: ')) continue
-      try {
-        const payload = JSON.parse(line.slice(6)) as {
-          parts?: Array<{ type: string; content: string }>
-          output?: Array<{ parts?: Array<{ type: string; content: string }> }>
+      const payload = safeJsonParse(line.slice(6), null, 'acp.payload') as {
+        parts?: Array<{ type: string; content: string }>
+        output?: Array<{ parts?: Array<{ type: string; content: string }> }>
+      } | null
+      if (!payload) continue
+      logger.debug(`[ACP] <-- SSE ${line.slice(6)}`)
+      // message_part event: { role, parts }
+      if (payload.parts) {
+        for (const part of payload.parts) {
+          if (part.type === 'text' && part.content) {
+            collected.push(part.content)
+            onChunk(part.content)
+          }
         }
-        logger.debug(`[ACP] <-- SSE ${line.slice(6)}`)
-        // message_part event: { role, parts }
-        if (payload.parts) {
-          for (const part of payload.parts) {
+      }
+      // run_completed event: { status, output }
+      if (payload.output) {
+        for (const msg of payload.output) {
+          for (const part of msg.parts ?? []) {
             if (part.type === 'text' && part.content) {
               collected.push(part.content)
-              onChunk(part.content)
             }
           }
         }
-        // run_completed event: { status, output }
-        if (payload.output) {
-          for (const msg of payload.output) {
-            for (const part of msg.parts ?? []) {
-              if (part.type === 'text' && part.content) {
-                collected.push(part.content)
-              }
-            }
-          }
-        }
-      } catch {
-        // ignore malformed SSE lines
       }
     }
   }

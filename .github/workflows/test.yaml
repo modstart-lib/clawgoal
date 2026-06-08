@@ -201,6 +201,7 @@ jobs:
   # ── Desktop app (Electron) ───────────────────────────────────────────────────
   build-app:
     name: Build App (${{ matrix.name }})
+    needs: [build-server]
     if: vars.BUILD_CLIENT_ENABLE != 'false'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -351,24 +352,28 @@ jobs:
           }
           echo "Sourcemap upload done."
 
-      - name: Build Server Binary for App (Linux/macOS)
-        if: runner.os != 'Windows'
-        env:
-          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
-        run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            pnpm --filter @clawgoal/backend build mac-arm64
-            pnpm --filter @clawgoal/backend build mac-x64
-          else
-            pnpm --filter @clawgoal/backend build ${{ matrix.server_target }}
-          fi
+      - name: Download Server Binary
+        uses: actions/download-artifact@v6
+        with:
+          name: clawgoal-server-${{ matrix.name }}
+          path: packages/backend/dist/
 
-      - name: Build Server Binary for App (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          BUILD_SOURCEMAP_ENABLE: ${{ secrets.BUILD_SOURCEMAP_ENABLE }}
-        run: pnpm --filter @clawgoal/backend build ${{ matrix.server_target }}
+      - name: Debug: list downloaded server binary
+        if: runner.os != 'Windows'
+        run: ls -lh packages/backend/dist/clawgoal-* || echo "No server binary found"
+
+      - name: Download Server Binary (macOS x64, for dual-arch DMG)
+        if: runner.os == 'macOS'
+        uses: actions/download-artifact@v6
+        with:
+          name: clawgoal-server-mac-x64
+          path: packages/backend/dist/
+
+      - name: Copy x64 Server Binary to App Resources (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p client/backend
+          cp packages/backend/dist/clawgoal-mac-x64 client/backend/clawgoal-mac-x64
 
       - name: Build & Package Electron App
         working-directory: client
@@ -379,16 +384,20 @@ jobs:
           ELECTRON_MIRROR: ${{ secrets.ELECTRON_MIRROR }}
         run: node scripts/build.cjs --full "../packages/backend/dist/${{ matrix.server_bin }}"
 
-      - name: List build output (debug Linux)
-        if: runner.os == 'Linux'
+      - name: Debug: list build output
+        if: runner.os != 'Windows'
         working-directory: client
         run: |
-          echo "=== build/ directory ==="
-          ls -la build/ 2>/dev/null || echo "(empty or missing)"
-          echo "=== find all .AppImage .deb ==="
-          find . -name "*.AppImage" -o -name "*.deb" 2>/dev/null | head -20
-          echo "=== pwd ==="
-          pwd
+          echo "=== build/ contents ==="
+          ls -lh build/ 2>/dev/null || echo "(empty)"
+          echo "=== AppImage ==="
+          ls -lh build/*.AppImage 2>/dev/null || echo "(none)"
+          echo "=== deb ==="
+          ls -lh build/*.deb 2>/dev/null || echo "(none)"
+          echo "=== dmg ==="
+          ls -lh build/*.dmg 2>/dev/null || echo "(none)"
+          echo "=== exe ==="
+          ls -lh build/*.exe 2>/dev/null || echo "(none)"
 
       - name: Upload App Artifact (Linux)
         if: runner.os == 'Linux'

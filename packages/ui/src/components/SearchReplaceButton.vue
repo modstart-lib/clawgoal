@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { safeJsonParse } from '@/utils/utils'
 import ReplaceAll from '~icons/lucide/replace-all'
 
 const { t } = useI18n()
@@ -35,7 +36,7 @@ function handleReplace() {
   })
   replaceCount.value = count
   if (count > 0) {
-    emit('update:modelValue', JSON.parse(replaced))
+    emit('update:modelValue', safeJsonParse(replaced, props.modelValue))
   }
 }
 

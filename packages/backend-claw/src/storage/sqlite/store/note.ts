@@ -1,5 +1,6 @@
 import type { Database, Statement } from 'bun:sqlite'
 import { makeSqlHelper } from '../../../../../backend/src/storage/sqlite.js'
+import { safeJsonParse } from '../../../../../backend/src/utils/json.js'
 import type {
   AddNoteInput,
   NoteRow,
@@ -24,7 +25,10 @@ export class SqliteClawNoteStore {
       : (this.sql(
           'SELECT * FROM claw_note WHERE project_id = ? ORDER BY id DESC'
         ).all(projectId) as any[])
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'note.meta'),
+    }))
   }
 
   paginateNotesByProjectId(
@@ -69,7 +73,13 @@ export class SqliteClawNoteStore {
     const records = this.sql(
       `SELECT * FROM claw_note WHERE ${where} ORDER BY id DESC LIMIT ? OFFSET ?`
     ).all(...params, pageSize, offset) as any[]
-    return { records: records.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null })), total }
+    return {
+      records: records.map((r) => ({
+        ...r,
+        meta: safeJsonParse(r.meta, null, 'note.meta'),
+      })),
+      total,
+    }
   }
 
   searchNotes(
@@ -85,17 +95,20 @@ export class SqliteClawNoteStore {
       : (this.sql(
           'SELECT * FROM claw_note WHERE title LIKE ? OR content LIKE ? ORDER BY id DESC LIMIT ?'
         ).all(like, like, limit) as any[])
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'note.meta'),
+    }))
   }
 
-  findNotesByProjectIdAndBiz(
-    projectId: number,
-    biz: string
-  ): NoteRow[] {
+  findNotesByProjectIdAndBiz(projectId: number, biz: string): NoteRow[] {
     const rows = this.sql(
       'SELECT * FROM claw_note WHERE project_id = ? AND biz = ? ORDER BY id DESC'
     ).all(projectId, biz) as any[]
-    return rows.map(r => ({ ...r, meta: r.meta ? JSON.parse(r.meta) : null }))
+    return rows.map((r) => ({
+      ...r,
+      meta: safeJsonParse(r.meta, null, 'note.meta'),
+    }))
   }
 
   findNoteTypesByProjectId(projectId: number): string[] {
@@ -107,14 +120,18 @@ export class SqliteClawNoteStore {
 
   findNoteById(id: number): NoteRow | undefined {
     const row = this.sql('SELECT * FROM claw_note WHERE id = ?').get(id) as any
-    return row ? { ...row, meta: row.meta ? JSON.parse(row.meta) : null } : undefined
+    return row
+      ? { ...row, meta: safeJsonParse(row.meta, null, 'note.meta') }
+      : undefined
   }
 
   findNoteByShareHash(shareHash: string): NoteRow | undefined {
-    const row = this.sql('SELECT * FROM claw_note WHERE share_hash = ? LIMIT 1').get(
-      shareHash
-    ) as any
-    return row ? { ...row, meta: row.meta ? JSON.parse(row.meta) : null } : undefined
+    const row = this.sql(
+      'SELECT * FROM claw_note WHERE share_hash = ? LIMIT 1'
+    ).get(shareHash) as any
+    return row
+      ? { ...row, meta: safeJsonParse(row.meta, null, 'note.meta') }
+      : undefined
   }
 
   insertNote(input: AddNoteInput): NoteRow {

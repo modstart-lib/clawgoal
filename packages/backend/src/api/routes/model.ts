@@ -7,7 +7,7 @@ import { getModelConfigList, config } from '../../config'
 import { useI18n } from '../../locale'
 import { modelCall, modelStream } from '../../model/model'
 import { apiHandler } from '../../utils/api'
-import { jsonStringify } from '../../utils/json.js'
+import { jsonStringify, safeJsonParse } from '../../utils/json.js'
 import { logger } from '../../utils/logger'
 import { error, success } from '../../utils/response'
 import type { AuthRequest } from '../middlewares/auth'
@@ -161,7 +161,7 @@ router.post(
           'BuildInModelProvider'
         )
         const builtinConfig = paramRaw
-          ? (JSON.parse(paramRaw) as {
+          ? (safeJsonParse(paramRaw, null, 'model.builtinConfig') as {
               isDefault?: boolean
               models?: Array<{ id: string; visible?: boolean }>
             })

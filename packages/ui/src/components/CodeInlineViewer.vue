@@ -71,6 +71,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { safeJsonParse } from '@/utils/utils'
 import ChevronDown from '~icons/lucide/chevron-down'
 import Maximize2 from '~icons/lucide/maximize-2'
 import Eye from '~icons/lucide/eye'
@@ -94,7 +95,7 @@ const linePreview = computed(() => {
     trimmed.length > 1
   ) {
     try {
-      const parsed = JSON.parse(trimmed)
+      const parsed = safeJsonParse(trimmed, {})
       const compact = JSON.stringify(parsed)
       return compact.length > 120 ? compact.slice(0, 120) + '…' : compact
     } catch {

@@ -15,6 +15,7 @@ import type { AuthRequest } from '../../../../backend/src/api/middlewares/auth.j
 import { ResponseCodes } from '../../../../backend/src/api/types/constants.js'
 import { apiHandler } from '../../../../backend/src/utils/api.js'
 import { error, success } from '../../../../backend/src/utils/response.js'
+import { safeJsonParse } from '../../../../backend/src/utils/json.js'
 import { useI18n } from '../../locale/index.js'
 import { mcpManager } from '../../mcp/manager.js'
 import { clawDb } from '../../storage/store/index.js'
@@ -29,15 +30,11 @@ const router: Router = Router()
 function mapMcpRow(r: any): any {
   let config: any = null
   if (r.config) {
-    try {
-      config = JSON.parse(r.config)
-    } catch {}
+    config = safeJsonParse(r.config, null, 'mcp.config')
   }
   let tools: any = null
   if (r.tools) {
-    try {
-      tools = JSON.parse(r.tools)
-    } catch {}
+    tools = safeJsonParse(r.tools, null, 'mcp.tools')
   }
   return { ...r, config, tools }
 }

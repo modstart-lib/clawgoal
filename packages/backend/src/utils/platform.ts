@@ -118,7 +118,10 @@ function tryReadHardwareUUID(): string | null {
   } else if (platform === 'linux') {
     // DMI/SMBIOS product UUID (hardware-level, not available in Docker by default)
     tryCommands.push(() => {
-      return fs.readFileSync('/sys/class/dmi/id/product_uuid', 'utf-8').trim().toUpperCase()
+      return fs
+        .readFileSync('/sys/class/dmi/id/product_uuid', 'utf-8')
+        .trim()
+        .toUpperCase()
     })
     tryCommands.push(() => {
       return readMachineId('/var/lib/dbus/machine-id', '/etc/machine-id') || ''
@@ -143,7 +146,8 @@ function tryReadHardwareUUID(): string | null {
   for (const fn of tryCommands) {
     try {
       const result = fn()
-      if (result && result !== '00000000-0000-0000-0000-000000000000') return result
+      if (result && result !== '00000000-0000-0000-0000-000000000000')
+        return result
     } catch {
       // Try next method
     }
@@ -167,7 +171,7 @@ function tryReadDockerHostUUID(): string | null {
     '/host/etc/machine-id',
     '/run/host/etc/machine-id',
     '/etc/machine-id',
-    '/var/lib/dbus/machine-id',
+    '/var/lib/dbus/machine-id'
   )
 }
 
@@ -187,7 +191,8 @@ function generateMacBasedUUID(): string {
       break
     }
   }
-  const machineId = readMachineId('/etc/machine-id', '/var/lib/dbus/machine-id') || ''
+  const machineId =
+    readMachineId('/etc/machine-id', '/var/lib/dbus/machine-id') || ''
   const hash = crypto
     .createHash('sha1')
     .update(`${mac}-${os.hostname()}-${machineId}`)
