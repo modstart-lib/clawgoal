@@ -44,10 +44,5 @@ if (envStore.serverViewMode === 'client') {
 
 app.use(router)
 
-// Wait for the initial navigation to complete (including auth guard and potential
-// redirect to /login) before mounting the app. This prevents a flash of protected
-// page content when the user is not authenticated.
-await router.isReady()
-
 
 app.mount('#app')

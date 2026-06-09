@@ -11,12 +11,17 @@
       :get-popup-container="getPopupContainer"
       component-size="default"
     >
-      <div id="app-root" ref="appRootRef">
+      <div v-if="routerReady" id="app-root" ref="appRootRef">
         <router-view v-slot="{ Component }">
           <KeepAlive :max="10">
             <component :is="Component" />
           </KeepAlive>
         </router-view>
+      </div>
+      <div v-else class="router-loading">
+        <div class="router-loading__spinner">
+          <a-spin size="large" />
+        </div>
       </div>
     </a-config-provider>
   </StyleProvider>
@@ -41,6 +46,7 @@ import { useTheme } from './composables/theme.js'
 import { useLocale } from './composables/locale.js'
 import { getAntdZIndexBase } from './utils/zindex'
 import { openDevTools, isWailsEnv } from './utils/wails'
+import router from './router'
 
 const transformer = legacyLogicalPropertiesTransformer
 
@@ -54,6 +60,13 @@ const styleContainer = inject('styleContainer', null)
 const instance = getCurrentInstance()
 
 const { primaryColor, effectivePrimaryColor, isDark, initTheme } = useTheme()
+
+// Show a loading state until the initial navigation (auth guards + lazy components)
+// completes. This prevents a flash of protected content and avoids blocking mount.
+const routerReady = ref(false)
+router.isReady().then(() => {
+  routerReady.value = true
+})
 
 onMounted(() => {
   initTheme()
@@ -127,4 +140,26 @@ const getPopupContainer = () => {
 
 <style>
 /* Global styles are in style.css */
+
+.router-loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-loading-bg, #f8fafc);
+  z-index: 9999;
+  transition: opacity 0.3s;
+}
+
+html.dark .router-loading {
+  background: var(--app-loading-bg, #09090b);
+}
+
+.router-loading__spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
 </style>
