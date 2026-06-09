@@ -245,21 +245,15 @@ jobs:
           Rename-Item -LiteralPath $file -NewName "$base-${TAG}$ext"
 
       - name: Release Server Binary
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          # Create draft release if not exists (idempotent)
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --draft \
-            --prerelease=false \
-            --notes "" \
-            2>/dev/null || true
-          # Upload server binary (renamed file with tag)
-          gh release upload "$TAG" code/packages/backend/dist/clawgoal-server-* \
-            --clobber
+        uses: softprops/action-gh-release@v2.3.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          fail_on_unmatched_files: false
+          overwrite_files: true
+          files: |
+            code/packages/backend/dist/clawgoal-server-*
 
   # ── Desktop app (Electron) ───────────────────────────────────────────────────
   build-app:
