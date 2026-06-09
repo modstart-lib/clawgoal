@@ -290,6 +290,7 @@ export default defineConfig(({ mode }) => {
     ],
     build: {
       outDir: 'dist',
+      modulePreload: false,
       sourcemap:
         process.env.BUILD_SOURCEMAP_ENABLE === 'false' ||
         process.env.BUILD_SOURCEMAP_ENABLE === '0'

@@ -8,6 +8,7 @@ import { useAuth } from '../composables/auth.ts'
 import { systemApi } from '../api/system'
 
 import { useAppEnv } from '@/composables/setting.ts'
+import LoginView from '../views/Login.vue'
 
 /**
  * Wrap module routes with MainLayout, stripping the module prefix from each child path.
@@ -41,7 +42,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('../views/Login.vue'),
+    component: LoginView,
     meta: { title: 'Login' },
   },
   ...useClawPublicRoutes(),
