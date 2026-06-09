@@ -159,17 +159,46 @@ jobs:
           security list-keychains -s build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
           security unlock-keychain -p "" build.keychain
-          security find-identity -v -p codesigning build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" -t private build.keychain
+          # Get cert label and update partition list for codesign access
+          CERT_LABEL=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | sed -n 's/.*"\(.*\)".*/\1/p')
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" -l "${CERT_LABEL}" -t private build.keychain
+          # Export and trust
           security export -k build.keychain -t certs -f x509 -p -o certificate.cer
           sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certificate.cer
+          # Extract signing identity (SHA-1 hash) for codesign
+          CERT_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | awk '{print $2}')
+          echo "CERT_IDENTITY=${CERT_IDENTITY}" >> $GITHUB_ENV
 
       - name: Sign Server Binary (macOS)
         if: runner.os == 'macOS'
         run: |
-          codesign --deep --force --options runtime \
-            --sign "Developer ID Application" \
+          codesign --deep --force --options runtime --timestamp \
+            --sign "${{ env.CERT_IDENTITY }}" \
+            --verbose \
             "packages/backend/dist/${{ matrix.bin }}"
+
+      - name: Notarize Server Binary (macOS)
+        if: runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_TEAM_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
+            echo "WARNING: Apple ID secrets not set, skipping notarization."
+            exit 0
+          fi
+          BINARY="packages/backend/dist/${{ matrix.bin }}"
+          echo "Notarizing ${BINARY} ..."
+          ditto -c -k "${BINARY}" "notarize.zip"
+          xcrun notarytool submit "notarize.zip" \
+            --apple-id "${APPLE_ID}" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
+            --wait
+          xcrun stapler staple "${BINARY}"
+          spctl -a -t exec -vv "${BINARY}"
+          echo "Notarization complete!"
 
       - name: Build Server Binary (Windows)
         if: runner.os == 'Windows'
@@ -280,8 +309,10 @@ jobs:
           security list-keychains -s build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
           security unlock-keychain -p "" build.keychain
-          security find-identity -v -p codesigning build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" -t private build.keychain
+          # Get cert label and update partition list for electron-builder access
+          CERT_LABEL=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | sed -n 's/.*"\(.*\)".*/\1/p')
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" -l "${CERT_LABEL}" -t private build.keychain
+          # Export and trust
           security export -k build.keychain -t certs -f x509 -p -o certificate.cer
           sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certificate.cer
 
