@@ -34,8 +34,8 @@ export const useAppEnv = defineStore('appEnv', () => {
       const res = await basicAxios.post('/setting/basic')
       serverViewMode.value = res.data?.data?.viewMode || ''
       configuredUrl.value = res.data?.data?.url ?? ''
-    } catch {
-      /* ignore */
+    } catch (e) {
+      console.error('[setting] fetchBasic() failed', e)
     }
   }
 

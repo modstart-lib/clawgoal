@@ -84,13 +84,13 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to, _from) => {
   // 页面访问统计（fire and forget）
   systemApi.collect('visit', { path: to.path }).catch(() => {})
 
   // 公开页面无需认证
   if (to.meta?.public) {
-    return next()
+    return
   }
 
   const authStore = useAuth()
@@ -120,16 +120,16 @@ router.beforeEach(async (to, _from, next) => {
 
   if (to.path === '/login' && authStore.isAuthenticated) {
     console.log(`[DIAG:guard] redirect /login → / (authenticated)`)
-    return next('/')
+    return '/'
   }
 
   if (to.path !== '/login' && !authStore.isAuthenticated) {
     console.log(`[DIAG:guard] redirect ${to.path} → /login (not authenticated)`)
-    return next('/login')
+    return '/login'
   }
 
   console.log(`[DIAG:guard] proceed to ${to.path}`)
-  next()
+  return
 })
 
 export default router

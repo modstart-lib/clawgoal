@@ -155,6 +155,7 @@ export function initErrorReporter(): void {
     const msg = e.message || 'Unknown error'
     const stack = e.error instanceof Error ? e.error.stack : undefined
     if (isErrorIgnored(msg, stack)) return
+    console.error(`[ErrorReporter] ${msg}`, e.error || e)
     reportError({
       msg,
       stack,
@@ -172,6 +173,7 @@ export function initErrorReporter(): void {
     const msg = isError ? reason.message : String(reason)
     const stack = isError ? reason.stack : undefined
     if (isErrorIgnored(msg, stack)) return
+    console.error(`[ErrorReporter] Unhandled Rejection: ${msg}`, reason)
     reportError({
       msg,
       stack,
