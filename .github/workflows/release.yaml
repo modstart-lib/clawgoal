@@ -224,37 +224,6 @@ jobs:
           name: clawgoal-server-${{ matrix.target }}
           path: code/packages/backend/dist/${{ matrix.bin }}
 
-      - name: Rename Server Binary (Linux/macOS)
-        if: runner.os == 'Linux' || runner.os == 'macOS'
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          SRC="code/packages/backend/dist/${{ matrix.bin }}"
-          if [ -f "$SRC" ]; then
-            mv "$SRC" "code/packages/backend/dist/${{ matrix.bin }}-${TAG}"
-          fi
-
-      - name: Rename Server Binary (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $TAG = $env:GITHUB_REF -replace 'refs/tags/', ''
-          $file = "code\packages\backend\dist\${{ matrix.bin }}"
-          $base = [System.IO.Path]::GetFileNameWithoutExtension($file)
-          $ext  = [System.IO.Path]::GetExtension($file)
-          # -NewName only accepts a filename, not a full path
-          Rename-Item -LiteralPath $file -NewName "$base-${TAG}$ext"
-
-      - name: Release Server Binary
-        uses: softprops/action-gh-release@v2.3.2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          fail_on_unmatched_files: false
-          overwrite_files: true
-          files: |
-            code/packages/backend/dist/clawgoal-server-*
-
   # ── Desktop app (Electron) ───────────────────────────────────────────────────
   build-app:
     name: Build App (${{ matrix.name }})
@@ -434,47 +403,65 @@ jobs:
           echo "=== exe ==="
           ls -lh build/*.exe 2>/dev/null || echo "(none)"
 
-      - name: Release App (Linux)
+      - name: Upload App Artifact (Linux)
         if: runner.os == 'Linux'
-        uses: softprops/action-gh-release@v2.3.2
+        uses: actions/upload-artifact@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          fail_on_unmatched_files: false
-          overwrite_files: true
-          files: |
+          name: clawgoal-app-${{ matrix.name }}
+          path: |
             code/client/build/*.AppImage
             code/client/build/*.deb
 
-      - name: Release App (macOS)
+      - name: Upload App Artifact (macOS)
         if: runner.os == 'macOS'
-        uses: softprops/action-gh-release@v2.3.2
+        uses: actions/upload-artifact@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          fail_on_unmatched_files: false
-          overwrite_files: true
-          files: |
-            code/client/build/*.dmg
+          name: clawgoal-app-${{ matrix.name }}
+          path: code/client/build/*.dmg
 
-      - name: Release App (Windows)
+      - name: Upload App Artifact (Windows)
         if: runner.os == 'Windows'
-        uses: softprops/action-gh-release@v2.3.2
+        uses: actions/upload-artifact@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          fail_on_unmatched_files: false
-          overwrite_files: true
-          files: |
-            code/client/build/*.exe
+          name: clawgoal-app-${{ matrix.name }}
+          path: code/client/build/*.exe
+
+  # ── Release ────────────────────────────────────────────────────────────────────
+  release:
+    name: Create Release
+    needs: [build-server, build-app]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: _artifacts
+          merge-multiple: false
+
+      - name: Create Release and Upload Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          # Create draft release (idempotent)
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --draft \
+            --prerelease=false \
+            --notes "" \
+            2>/dev/null || true
+          # Upload all server & app binaries
+          find _artifacts/ -type f | while read f; do
+            echo "Uploading: $(basename "$f")"
+            gh release upload "$TAG" "$f" --clobber
+          done
 
   # ── Notify ────────────────────────────────────────────────────────────────────
   notify:
     name: Notify
-    needs: [build-server, build-app]
+    needs: [release]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
