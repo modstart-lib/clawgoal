@@ -45,6 +45,7 @@ router.post(
  * @Api /api/claw/memory/global/set
  * @Summary Set memory global
  * @BodyParam content string Global memory content
+ * @ReturnDataExample {}
  */
 router.post(
   '/claw/memory/global/set',
@@ -111,6 +112,7 @@ router.post(
  * @Summary Set memory agent
  * @BodyParam agentId string Agent ID
  * @BodyParam content string Agent memory content
+ * @ReturnDataExample {}
  */
 router.post(
   '/claw/memory/agent/set',
@@ -145,6 +147,7 @@ router.post(
  * @Summary Set memory agent soul
  * @BodyParam agentId string Agent ID
  * @BodyParam content string Agent soul content
+ * @ReturnDataExample {}
  */
 router.post(
   '/claw/memory/agent/soul/set',

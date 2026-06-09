@@ -104,8 +104,8 @@ import {
   shareEvent,
   unshareEvent,
   type ProjectEvent,
-  type ProjectItem,
-} from '@/claw/api/project'
+} from '@/claw/api/event'
+import type { ProjectItem } from '@/claw/api/project'
 import EmptyState from '@/components/EmptyState.vue'
 import LabelSelector from '@/components/LabelSelector.vue'
 import ListerTop from '@/components/ListerTop.vue'
@@ -269,9 +269,10 @@ const deleteItem = async (item: ProjectEvent) => {
 
 const handleShare = async (item: ProjectEvent) => {
   try {
-    const hash = await shareEvent(item.id)
-    const url = `${siteUrl.value}/api/claw/event/share/${item.id}_${hash}`
-    await copyText(url, t('claw.project.shareLinkCopied'))
+    const url = await shareEvent(item.id)
+    if (url) {
+      await copyText(url, t('claw.project.shareLinkCopied'))
+    }
     loadEvents()
   } catch {
     message.error(t('claw.event.shareFailed'))

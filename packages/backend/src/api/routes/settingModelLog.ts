@@ -23,6 +23,7 @@ const router = Router()
  * @BodyParam bizId string? Filter by bizId
  * @BodyParam startAt string? Start date
  * @BodyParam endAt string? End date
+ * @ReturnDataExample {"records":[{"id":1,"createdAt":"2026-01-01T00:00:00.000Z","name":"chat","provider":"openai","model":"gpt-4","biz":"Chat","bizId":"1","status":"success","promptTokens":100,"completionTokens":50,"totalTokens":150,"durationMs":1200,"messageCount":2,"error":null,"requestBody":{},"responseBody":{}}],"page":1,"pageSize":20,"total":1}
  */
 router.post(
   '/setting/model/logs',
@@ -89,7 +90,7 @@ router.post(
 /**
  * @Api /api/setting/model/logBizValues
  * @Summary Log Biz Values
- * @ReturnDataExample {"values":["chat","claw"]}
+ * @ReturnDataExample {"values":["Chat","Claw"]}
  */
 router.post(
   '/setting/model/logBizValues',
@@ -107,7 +108,7 @@ router.post(
  * @Summary Get stats setting model
  * @BodyParam startAt string? Start date
  * @BodyParam endAt string? End date
- * @ReturnDataExample {"records":[{"provider":"openai","model":"gpt-4","call_count":100}]}
+ * @ReturnDataExample {"records":[{"provider":"openai","model":"gpt-4","callCount":100,"totalPromptTokens":10000,"totalCompletionTokens":5000,"totalTokens":15000,"avgDurationMs":1200,"errorCount":2}]}
  */
 router.post(
   '/setting/model/stats',
@@ -143,7 +144,7 @@ router.post(
  * @BodyParam endAt string? End date
  * @BodyParam provider string? Filter by provider
  * @BodyParam model string? Filter by model
- * @ReturnDataExample {"records":[{"date":"2024-01-01","provider":"openai","call_count":10}]}
+ * @ReturnDataExample {"records":[{"date":"2024-01-01","provider":"openai","model":"gpt-4","callCount":10,"totalPromptTokens":1000,"totalCompletionTokens":500,"totalTokens":1500}]}
  */
 router.post(
   '/setting/model/dailyStats',
@@ -185,7 +186,7 @@ router.post(
  * @BodyParam endAt string? End date
  * @BodyParam provider string? Filter by provider
  * @BodyParam model string? Filter by model
- * @ReturnDataExample {"records":[{"hour":"2024-01-01T10:00","provider":"openai","call_count":2}]}
+ * @ReturnDataExample {"records":[{"hour":"2024-01-01T10:00","provider":"openai","model":"gpt-4","callCount":2,"totalPromptTokens":200,"totalCompletionTokens":100,"totalTokens":300}]}
  */
 router.post(
   '/setting/model/hourlyStats',

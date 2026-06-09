@@ -42,7 +42,7 @@ function formatWaitTime(locale: string, seconds: number): string {
  * @BodyParam username string
  * @BodyParam password string
  * @BodyParam captchaToken string
- * @ReturnDataExample {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...","userId":1}
+ * @ReturnDataExample {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...","userId":1,"tenantId":1}
  */
 router.post(
   '/login',
@@ -135,7 +135,7 @@ router.post(
 /**
  * @Api /api/login/auto
  * @Summary Auto login without credentials (only available when IS_CLIENT=1)
- * @ReturnDataExample {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...","userId":1}
+ * @ReturnDataExample {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...","userId":1,"tenantId":1}
  */
 router.post(
   '/login/auto',
@@ -160,7 +160,7 @@ router.post(
 /**
  * @Api /api/login/refresh
  * @Summary Refresh token login
- * @ReturnDataExample {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...","userId":1}
+ * @ReturnDataExample {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...","userId":1,"tenantId":1}
  */
 router.post(
   '/login/refresh',

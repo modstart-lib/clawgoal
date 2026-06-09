@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ProjectEvent } from '@/claw/api/project'
+import type { ProjectEvent } from '@/claw/api/event'
 import DatetimeViewer from '@/components/DatetimeViewer.vue'
 import MarkdownViewer from '@/components/MarkdownViewer.vue'
 import MetaViewer from '@/components/MetaViewer.vue'

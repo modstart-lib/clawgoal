@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProjectEvent } from '@/claw/api/project'
+import type { ProjectEvent } from '@/claw/api/event'
 import { copyText } from '@/utils/utils'
 import MoreHorizontal from '~icons/lucide/more-horizontal'
 import Pencil from '~icons/lucide/pencil'

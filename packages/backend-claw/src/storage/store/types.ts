@@ -963,6 +963,7 @@ export interface WikiRow {
   tenant_id: number
   user_id: number
   project_id: number
+  biz: string | null
   /** processing | success | fail */
   status: string
   /** manual | syncUrl | syncPath */
@@ -980,12 +981,14 @@ export interface WikiRow {
   status_remark: string | null
   /** syncPath 类型的同步目录路径 */
   sync_path: string | null
+  meta: any
 }
 
 export interface AddWikiInput {
   tenantId: number
   userId: number
   projectId: number
+  biz?: string
   title?: string
   content?: string
   sourceUrl?: string
@@ -995,6 +998,7 @@ export interface AddWikiInput {
   syncPath?: string
   syncInterval?: number
   nextSyncTime?: string
+  meta?: Record<string, unknown> | null
 }
 
 export interface UpdateWikiInput {
@@ -1008,6 +1012,8 @@ export interface UpdateWikiInput {
   syncInterval?: number
   nextSyncTime?: string | null
   statusRemark?: string | null
+  biz?: string | null
+  meta?: Record<string, unknown> | null
 }
 
 // ─── Project Wiki Sync Log ──────────────────────────────────────────────────────────────

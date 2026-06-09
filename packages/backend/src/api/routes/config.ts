@@ -294,7 +294,7 @@ router.post(
  * @BodyParam apiBase string API base URL
  * @BodyParam apiKey string API key
  * @BodyParam models string[] Model list
- * @ReturnDataExample {"ok":true,"models":["gpt-4","gpt-3.5-turbo"]}
+ * @ReturnDataExample {"ok":true}
  */
 router.post(
   '/config/modelProvider/test',

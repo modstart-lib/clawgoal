@@ -77,6 +77,7 @@ function fallbackCoverSvg(seed: string): string {
  * @Method GET
  * @Summary 随机头像代理（SVG）
  * @QueryParam seed? string 随机种子
+ * @ReturnDataExample "SVG image response (Content-Type: image/svg+xml)"
  */
 router.get('/mock/randomAvatar', async (req, res) => {
   const seed = String(req.query.seed || Math.random().toString(36).slice(2, 10))
@@ -103,6 +104,7 @@ router.get('/mock/randomAvatar', async (req, res) => {
  * @Method GET
  * @Summary 随机封面图代理（SVG）
  * @QueryParam seed? string 随机种子
+ * @ReturnDataExample "SVG image response (Content-Type: image/svg+xml)"
  */
 router.get('/mock/randomCover', async (req, res) => {
   const seed = String(req.query.seed || Math.random().toString(36).slice(2, 10))
@@ -151,6 +153,7 @@ const _IMAGE_KEYWORDS = [
  * @QueryParam keywords? string 图片关键词
  * @QueryParam w? number 宽度（默认 800）
  * @QueryParam h? number 高度（默认 480）
+ * @ReturnDataExample "JPEG image response (Content-Type: image/jpeg)"
  */
 router.get('/mock/randomImage', async (req, res) => {
   const keywords = req.query.keywords
@@ -185,6 +188,10 @@ router.get('/mock/randomImage', async (req, res) => {
  * @Api /api/mock/mcp
  * @Method POST
  * @Summary Mock MCP 服务端（tools/list、tools/call）
+ * @BodyParam method string JSON-RPC method (tools/list or tools/call)
+ * @BodyParam params object Method-specific parameters
+ * @BodyParam id number JSON-RPC request ID
+ * @ReturnDataExample {"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"mock_tool","description":"Mock 工具","inputSchema":{}}]}}
  */
 router.post('/mock/mcp', (req, res) => {
   const { method, params, id } = req.body || {}
@@ -237,6 +244,7 @@ router.post('/mock/mcp', (req, res) => {
  * @Method POST
  * @Summary 将文本转为 MP3 音频（无需真实 TTS 服务，用 ffmpeg lavfi 生成正弦波）
  * @BodyParam text string 要转换的文字
+ * @ReturnDataExample "MP3 audio binary response (Content-Type: audio/mpeg)"
  */
 router.post('/mock/tts', async (req, res) => {
   const text = String(req.body?.text || '')
@@ -280,6 +288,7 @@ router.post('/mock/tts', async (req, res) => {
  * @Method POST
  * @Summary 将 SRT 字幕内容转为 MP3 音频（无需真实 TTS 服务，按字幕时长生成静音）
  * @BodyParam srt string SRT 字幕内容
+ * @ReturnDataExample "MP3 audio binary response (Content-Type: audio/mpeg)"
  */
 router.post('/mock/subtitleTts', async (req, res) => {
   const srt = String(req.body?.srt || '')
@@ -343,6 +352,7 @@ router.post('/mock/subtitleTts', async (req, res) => {
  * @BodyParam prompt string 图像描述文字
  * @BodyParam width? number 宽度（默认 512）
  * @BodyParam height? number 高度（默认 512）
+ * @ReturnDataExample "JPEG image binary response (Content-Type: image/jpeg)"
  */
 router.post('/mock/textToImage', async (req, res) => {
   const prompt = String(req.body?.prompt || 'image')
@@ -393,6 +403,7 @@ router.post('/mock/textToImage', async (req, res) => {
  * @Summary 根据图片和描述生成新图（无需真实 AI 服务，用 ffmpeg hue 滤镜做色调转换）
  * @BodyParam image File 源图片文件
  * @BodyParam prompt string 转换风格描述
+ * @ReturnDataExample "JPEG image binary response (Content-Type: image/jpeg)"
  */
 router.post(
   '/mock/imageToImage',

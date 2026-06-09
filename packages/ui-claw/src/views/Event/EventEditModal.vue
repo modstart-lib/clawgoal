@@ -80,12 +80,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-  addEvent,
-  editEvent,
-  type ProjectEvent,
-  type ProjectItem,
-} from '@/claw/api/project'
+import { addEvent, editEvent, type ProjectEvent } from '@/claw/api/event'
+import type { ProjectItem } from '@/claw/api/project'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import MetaEditor from '@/components/MetaEditor.vue'
 import { message } from 'ant-design-vue'

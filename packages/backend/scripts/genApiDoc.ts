@@ -18,6 +18,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { safeJsonParse } from '../src/utils/json.js'
+import packageJson from '../package.json' with { type: 'json' }
 import { dirname, join, relative } from 'path'
 
 interface RouteDoc {
@@ -348,7 +349,7 @@ const swaggerDoc = {
   openapi: '3.0.0',
   info: {
     title: 'ClawGoal API',
-    version: '1.0.0',
+    version: packageJson.version || '0.0.1',
     description: '由 scripts/genApiDoc.ts 在构建时自动生成。',
   },
   components: {

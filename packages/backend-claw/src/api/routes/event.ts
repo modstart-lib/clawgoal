@@ -18,6 +18,7 @@ import { error, success } from '../../../../backend/src/utils/response.js'
 import { useI18n } from '../../locale/index.js'
 import { clawDb } from '../../storage/store/index.js'
 import { renderMarkdown } from '../../../../backend/src/utils/markdown.js'
+import { config } from '../../../../backend/src/config/index.js'
 import type { EventRow } from '../../storage/store/types.js'
 
 const router: Router = Router()
@@ -261,7 +262,7 @@ router.post(
  * @Api /api/claw/event/share
  * @Summary Share event
  * @BodyParam id number Event ID
- * @ReturnDataExample {"shareHash":"abc123"}
+ * @ReturnDataExample {"shareHash":"abc123","shareUrl":"https://example.com/claw/event/share/1_abc123"}
  */
 router.post(
   '/claw/event/share',
@@ -280,7 +281,10 @@ router.post(
     if (!row.share_hash) {
       clawDb.updateEvent(Number(id), { shareHash })
     }
-    return success(res, { shareHash })
+    const shareUrl = config.url
+      ? `${config.url}/claw/event/share/${id}_${shareHash}`
+      : `/claw/event/share/${id}_${shareHash}`
+    return success(res, { shareHash, shareUrl })
   })
 )
 

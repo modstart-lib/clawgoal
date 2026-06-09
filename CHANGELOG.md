@@ -3,6 +3,18 @@
 
 ## [Unreleased]
 
+### 新增
+- **Event/Note 分享**：后端分享接口返回完整 `shareUrl`（基于 `config.url` 构建），前端分享功能直接返回完整链接，无需手动拼接
+
+### 优化
+- **Event API 拆分**：将 Event 相关接口（`addEvent`、`editEvent`、`deleteEvent`、`listEvents`、`shareEvent` 等）从 `project.ts` 提取到独立的 `event.ts` 文件，各组件更新导入路径
+- **API 文档完善**：为 agentSession、memory、task、mock、auth、config、settingModelLog 等模块补充和更新 `@ReturnDataExample` 注解，新增 `/claw/task/stats` 接口文档声明
+- **登录接口返回增强**：登录 / 自动登录 / 刷新令牌接口返回值新增 `tenantId` 字段
+- **模型用量统计优化**：`logBizValues`、`stats`、`dailyStats`、`hourlyStats` 接口返回值增加 `callCount`、`total(Prompt/Completion)Tokens`、`errorCount`、`avgDurationMs` 等详细字段
+
+### 新增
+- **Wiki 数据模型扩展**：`WikiRow` 及输入类型新增 `biz`（业务类型）、`meta`（元数据）字段，提升数据扩展性
+
 ---
 
 ## [0.1.0] - 2026-05-20

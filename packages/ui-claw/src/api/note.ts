@@ -82,7 +82,13 @@ export const deleteNote = async (id: number): Promise<void> => {
 
 export const shareNote = async (id: number): Promise<string> => {
   const res = await apiClient.post('/claw/note/share', { id })
-  return res.data.data?.shareHash
+  const data = res.data.data
+  if (data?.shareUrl) return data.shareUrl
+  // Fallback: construct URL from hash (backward compat)
+  if (data?.shareHash) {
+    return `${window.location.origin}/claw/note/share/${id}_${data.shareHash}`
+  }
+  return ''
 }
 
 export const unshareNote = async (id: number): Promise<void> => {

@@ -249,11 +249,10 @@ import { resolveApiPath } from '@/api/base'
 import {
   addEvent as apiAddEvent,
   deleteEvent as apiDeleteEvent,
-  deleteProject,
   editEvent,
   type ProjectEvent,
-  type ProjectItem,
-} from '@/claw/api/project'
+} from '@/claw/api/event'
+import { deleteProject, type ProjectItem } from '@/claw/api/project'
 import { PROJECT_STATUS_BADGE } from '@/claw/views/Project/constant'
 import DatetimeViewer from '@/components/DatetimeViewer.vue'
 import { message, Modal } from 'ant-design-vue'

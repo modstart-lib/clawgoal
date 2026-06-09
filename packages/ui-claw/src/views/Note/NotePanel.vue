@@ -383,9 +383,10 @@ const doDeleteNote = async (item: Note) => {
 
 const handleShareNote = async (item: Note) => {
   try {
-    const hash = await shareNote(item.id)
-    const url = `${siteUrl.value}/api/claw/note/share/${item.id}_${hash}`
-    await copyText(url, t('claw.project.shareLinkCopied'))
+    const url = await shareNote(item.id)
+    if (url) {
+      await copyText(url, t('claw.project.shareLinkCopied'))
+    }
     await loadNotes()
   } catch {
     message.error(t('claw.project.noteShareFailed'))

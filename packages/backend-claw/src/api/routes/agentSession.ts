@@ -36,6 +36,7 @@ const router: Router = Router()
  * @BodyParam agentId number Agent ID
  * @BodyParam limit number Max results (default 50)
  * @BodyParam offset number Offset (default 0)
+ * @ReturnDataExample [{"id":1,"agent_id":1,"title":"Chat Session","status":"active","created_at":"2026-01-01T00:00:00.000Z","updated_at":"2026-01-01T00:00:00.000Z"}]
  */
 router.post(
   '/claw/agentSession/list',
@@ -59,6 +60,7 @@ router.post(
  * @Api /api/claw/agentSession/get
  * @Summary Get agent session
  * @BodyParam id number Session ID
+ * @ReturnDataExample {"id":1,"agent_id":1,"title":"Chat Session","status":"active","created_at":"2026-01-01T00:00:00.000Z","updated_at":"2026-01-01T00:00:00.000Z"}
  */
 router.post(
   '/claw/agentSession/get',
@@ -89,6 +91,7 @@ router.post(
  * @Api /api/claw/agentSession/add
  * @Summary Add agent session
  * @BodyParam agentId number Agent ID
+ * @ReturnDataExample {"id":1}
  */
 router.post(
   '/claw/agentSession/add',
@@ -107,6 +110,7 @@ router.post(
  * @Summary Switch agent session
  * @BodyParam agentId number Agent ID
  * @BodyParam sessionId number Target session ID
+ * @ReturnDataExample {"id":1}
  */
 router.post(
   '/claw/agentSession/switch',
@@ -131,6 +135,7 @@ router.post(
  * @Api /api/claw/agentSession/delete
  * @Summary Remove agent session
  * @BodyParam id number Session ID
+ * @ReturnDataExample null
  */
 router.post(
   '/claw/agentSession/delete',
@@ -171,6 +176,7 @@ router.post(
  * @Api /api/claw/agentSession/getData
  * @Summary Get data agent session
  * @BodyParam id number Session ID
+ * @ReturnDataExample {"data":{"key":"value"}}
  */
 router.post(
   '/claw/agentSession/getData',
@@ -203,6 +209,7 @@ router.post(
  * @Summary Update data agent session
  * @BodyParam id number Session ID
  * @BodyParam data object JSON data to store
+ * @ReturnDataExample null
  */
 router.post(
   '/claw/agentSession/updateData',

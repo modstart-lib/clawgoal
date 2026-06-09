@@ -14,6 +14,7 @@ import { error, success } from '../../../../backend/src/utils/response'
 import { useI18n } from '../../locale/index.js'
 import { clawDb } from '../../storage/store/index.js'
 import { renderMarkdown } from '../../../../backend/src/utils/markdown.js'
+import { config } from '../../../../backend/src/config/index.js'
 import type { NoteRow } from '../../storage/store/types.js'
 
 const router: Router = Router()
@@ -229,7 +230,7 @@ router.post(
  * @Api /api/claw/note/share
  * @Summary Share
  * @BodyParam id number Note ID
- * @ReturnDataExample {"shareHash":"abc123"}
+ * @ReturnDataExample {"shareHash":"abc123","shareUrl":"https://example.com/claw/note/share/1_abc123"}
  */
 router.post(
   '/claw/note/share',
@@ -248,7 +249,10 @@ router.post(
     if (!row.share_hash) {
       clawDb.updateNote(Number(id), { shareHash })
     }
-    return success(res, { shareHash })
+    const shareUrl = config.url
+      ? `${config.url}/claw/note/share/${id}_${shareHash}`
+      : `/claw/note/share/${id}_${shareHash}`
+    return success(res, { shareHash, shareUrl })
   })
 )
 

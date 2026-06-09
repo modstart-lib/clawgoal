@@ -349,6 +349,7 @@ router.post(
  * @BodyParam dueAt string? New due date
  * @BodyParam estimatedHours number? New estimated hours
  * @BodyParam needs number[]? Dependency task IDs
+ * @ReturnDataExample {"id":1,"title":"Updated Task","status":"draft","statusText":"草稿","agentId":1,"agentTitle":"Agent"}
  */
 router.post(
   '/claw/task/edit',
@@ -414,6 +415,12 @@ router.post(
   })
 )
 
+/**
+ * @Api /api/claw/task/stats
+ * @Summary Get task statistics by status
+ * @BodyParam projectId? number Filter by project ID
+ * @ReturnDataExample {"counts":{"draft":5,"queue":2,"ready":3,"running":1,"failed":0,"canceled":0,"success":10}}
+ */
 router.post(
   '/claw/task/stats',
   apiHandler(async (req, res) => {
@@ -520,6 +527,7 @@ router.post(
  * @Api /api/claw/task/childList
  * @Summary List children task
  * @BodyParam parentId number 父任务 ID
+ * @ReturnDataExample [{"id":2,"title":"子任务","status":"queue","statusText":"队列中"}]
  */
 router.post(
   '/claw/task/childList',
@@ -553,6 +561,7 @@ router.post(
  * @BodyParam title string 子任务标题（必须）
  * @BodyParam agentId number? 执行智能体 ID
  * @BodyParam description string? 子任务描述
+ * @ReturnDataExample {"id":2,"title":"子任务","status":"queue","statusText":"队列中"}
  */
 router.post(
   '/claw/task/childAdd',
@@ -607,6 +616,7 @@ router.post(
  * @Api /api/claw/task/childDelete
  * @Summary Remove child task task
  * @BodyParam id number 子任务 ID
+ * @ReturnDataExample {"success":true}
  */
 router.post(
   '/claw/task/childDelete',
@@ -635,7 +645,7 @@ router.post(
  * @Api /api/claw/task/descendants
  * @Summary Get descendants task
  * @BodyParam rootId number 根任务 ID
- * @ReturnDataExample [{"id":2,"parentId":1,"rootId":1,...}]
+ * @ReturnDataExample [{"id":2,"parentId":1,"rootId":1,"title":"子任务","status":"queue","statusText":"队列中"}]
  */
 router.post(
   '/claw/task/descendants',
@@ -668,6 +678,7 @@ router.post(
  * @BodyParam title string Task title
  * @BodyParam agentId number? Agent ID
  * @BodyParam description string? Description
+ * @ReturnDataExample {"id":3,"title":"Task","status":"draft","keyResultId":1}
  */
 router.post(
   '/claw/task/addToKeyResult',
