@@ -2,7 +2,7 @@
   "name": "clawgoal",
   "private": true,
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0-beta",
   "description": "ClawGoal Monorepo - UI and Backend Services",
   "scripts": {
     "build": "pnpm --stream build:packages",
